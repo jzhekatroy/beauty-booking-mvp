@@ -66,13 +66,6 @@ export async function POST(request: NextRequest) {
       ip: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     })
     
-    // Проверяем валидность данных (если initData передан)
-    let isValid = false
-    if (initData && salonId) {
-      isValid = await validateTelegramWebAppData(initData, salonId)
-      console.log('🔐 Data validation result:', isValid)
-    }
-    
     // Извлекаем salon ID из URL или startParam
     let salonId = null
     if (url) {
@@ -81,6 +74,13 @@ export async function POST(request: NextRequest) {
         salonId = urlMatch[1]
         console.log('🏪 Salon ID extracted from URL:', salonId)
       }
+    }
+    
+    // Проверяем валидность данных (если initData передан)
+    let isValid = false
+    if (initData && salonId) {
+      isValid = await validateTelegramWebAppData(initData, salonId)
+      console.log('🔐 Data validation result:', isValid)
     }
     
     if (startParam) {

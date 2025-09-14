@@ -385,7 +385,8 @@ export default function BookingWidget() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <VersionToggle />        <div className="text-center">
+        <VersionToggle />
+        <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
           <p className="text-gray-600">Загрузка данных...</p>
         </div>

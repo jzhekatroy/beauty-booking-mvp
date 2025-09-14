@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
 // ProgressIndicator убран по требованию дизайна
 import { EnhancedServiceSelection } from '@/components/EnhancedServiceSelection'
@@ -193,8 +194,15 @@ export default function BookingWidget() {
     try {
       setLoading(true)
 
-      // Загружаем данные команды
-      const teamResponse = await fetch(`/api/teams/${slug}`)
+      // Загружаем данные команды с таймаутом
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 секунд таймаут
+      
+      const teamResponse = await fetch(`/api/teams/${slug}`, {
+        signal: controller.signal
+      })
+      clearTimeout(timeoutId)
+      
       if (!teamResponse.ok) {
         throw new Error('Команда не найдена')
       }
@@ -231,7 +239,11 @@ export default function BookingWidget() {
       
     } catch (error) {
       console.error('Ошибка загрузки данных:', error)
-      setError(error instanceof Error ? error.message : 'Ошибка загрузки данных')
+      if (error instanceof Error && error.name === 'AbortError') {
+        setError('Превышено время ожидания. Проверьте подключение к интернету.')
+      } else {
+        setError(error instanceof Error ? error.message : 'Ошибка загрузки данных')
+      }
     } finally {
       setLoading(false)
     }
@@ -332,32 +344,18 @@ export default function BookingWidget() {
     }
   }
 
-  // Компонент для Lovable версии
-  const [LovableComponent, setLovableComponent] = useState<React.ComponentType | null>(null)
-  
-  useEffect(() => {
-    if (showLovableVersion) {
-      import("./page-lovable").then((module) => {
-        setLovableComponent(() => module.default)
-      })
-    }
-  }, [showLovableVersion])
-  
-  const LovableBookingWidget = () => {
-    if (!LovableComponent) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
-            <p className="text-gray-600">Загрузка Lovable версии...</p>
-          </div>
+  // Импортируем Lovable компонент статически
+  const LovableBookingWidget = dynamic(() => import("./page-lovable"), {
+    loading: () => (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка Lovable версии...</p>
         </div>
-      )
-    }
-    
-    const BookingWidgetLovable = LovableComponent
-    return <BookingWidgetLovable />
-  }
+      </div>
+    ),
+    ssr: false
+  })
 
   // Компонент переключателя версий
   const VersionToggle = () => {
@@ -410,9 +408,18 @@ export default function BookingWidget() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <VersionToggle />
-        <div className="text-center">
+        <div className="text-center p-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка данных...</p>
+          <p className="text-gray-600 mb-2">Загрузка данных...</p>
+          <p className="text-sm text-gray-500">Пожалуйста, подождите</p>
+          <div className="mt-4">
+            <button 
+              onClick={loadInitialData}
+              className="text-sm text-blue-600 hover:text-blue-800 underline"
+            >
+              Попробовать снова
+            </button>
+          </div>
         </div>
       </div>
     )

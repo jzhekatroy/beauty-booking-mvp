@@ -334,11 +334,58 @@ export default function BookingWidget() {
   }
 
   // Публичная страница: тема берётся из настроек команды, слушатели не нужны
+  // Компонент переключателя версий
+  const VersionToggle = () => {
+    const [isLovable, setIsLovable] = useState<boolean>(showLovableVersion)
+    console.log("🔄 VersionToggle rendered, showLovableVersion:", showLovableVersion, "isLovable:", isLovable)    
+    const toggleVersion = () => {
+      const newVersion = !isLovable
+      setIsLovable(newVersion)
+      console.log("🔄 Toggle version clicked, current isLovable:", isLovable)
+      const url = new URL(window.location.href)
+      if (newVersion) {
+        url.searchParams.set("lovable", "true")
+      } else {
+        url.searchParams.delete("lovable")
+      }
+      console.log("🔄 Redirecting to:", url.toString())
+      window.location.href = url.toString()
+    }
 
+    return (
+      <div className="fixed top-4 right-4 z-50">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
+          <div className="flex items-center gap-3">
+            <div className="text-sm font-medium text-gray-700">UI:</div>
+            <button
+              onClick={toggleVersion}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                !isLovable 
+                  ? "bg-gray-600 text-white" 
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Оригинал
+            </button>
+            <button
+              onClick={toggleVersion}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isLovable 
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg" 
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              Lovable
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
+        <VersionToggle />        <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
           <p className="text-gray-600">Загрузка данных...</p>
         </div>
@@ -404,53 +451,6 @@ export default function BookingWidget() {
     return <BookingWidgetLovable />
   }
 
-  // Компонент переключателя версий
-  const VersionToggle = () => {
-    const [isLovable, setIsLovable] = useState<boolean>(showLovableVersion)
-    console.log("🔄 VersionToggle rendered, showLovableVersion:", showLovableVersion, "isLovable:", isLovable)    
-    const toggleVersion = () => {
-      const newVersion = !isLovable
-      setIsLovable(newVersion)
-      console.log("🔄 Toggle version clicked, current isLovable:", isLovable)
-      const url = new URL(window.location.href)
-      if (newVersion) {
-        url.searchParams.set('lovable', 'true')
-      } else {
-        url.searchParams.delete('lovable')
-      }
-      window.location.href = url.toString()
-    }
-
-    return (
-      <div className="fixed top-4 right-4 z-50">
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
-          <div className="flex items-center gap-3">
-            <div className="text-sm font-medium text-gray-700">UI:</div>
-            <button
-              onClick={toggleVersion}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                !isLovable 
-                  ? 'bg-gray-600 text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Оригинал
-            </button>
-            <button
-              onClick={toggleVersion}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isLovable 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Lovable
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
 
 

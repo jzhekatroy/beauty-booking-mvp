@@ -353,10 +353,10 @@ export default function BookingWidget() {
     }
 
     return (
-      <div className="fixed top-4 right-4 z-[9999] bg-red-500 p-2 rounded">
+      <div className="fixed top-4 right-4 z-[9999] bg-red-500 p-4 rounded text-white font-bold">
         <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
           <div className="flex items-center gap-3">
-            <div className="text-sm font-medium text-gray-700">UI TEST:</div>
+            <div className="text-sm font-medium text-gray-700">TOGGLE TEST:</div>
             <button
               onClick={toggleVersion}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${

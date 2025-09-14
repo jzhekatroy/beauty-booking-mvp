@@ -47,6 +47,13 @@ export function EnhancedClientInfoAndConfirmationLovable({
     setIsRequestingPhone(true)
     
     try {
+      // Проверяем, что webApp доступен
+      if (!telegramWebApp.webApp) {
+        console.log('❌ webApp not available')
+        alert('Telegram WebApp недоступен')
+        return
+      }
+
       // Проверяем, доступен ли метод requestContact
       if (typeof telegramWebApp.webApp.requestContact !== 'function') {
         console.log('❌ requestContact method not available')
@@ -79,7 +86,9 @@ export function EnhancedClientInfoAndConfirmationLovable({
 
       // Убираем обработчик через 30 секунд
       setTimeout(() => {
-        telegramWebApp.webApp.offEvent('contactRequested', handleContactRequested)
+        if (telegramWebApp.webApp) {
+          telegramWebApp.webApp.offEvent('contactRequested', handleContactRequested)
+        }
         setIsRequestingPhone(false)
       }, 30000)
 

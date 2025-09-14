@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import dynamic from 'next/dynamic'
 import { useTelegramWebApp } from '@/hooks/useTelegramWebApp'
 // ProgressIndicator убран по требованию дизайна
 import { EnhancedServiceSelection } from '@/components/EnhancedServiceSelection'
@@ -13,6 +12,7 @@ import { Service, ServiceGroup, Master, TimeSlot, BookingData, BookingStep, Clie
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
+import BookingWidgetLovable from "./page-lovable"
 
 interface TeamData {
   team: {
@@ -344,18 +344,6 @@ export default function BookingWidget() {
     }
   }
 
-  // Импортируем Lovable компонент статически
-  const LovableBookingWidget = dynamic(() => import("./page-lovable"), {
-    loading: () => (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка Lovable версии...</p>
-        </div>
-      </div>
-    ),
-    ssr: false
-  })
 
   // Компонент переключателя версий
   const VersionToggle = () => {
@@ -458,9 +446,9 @@ export default function BookingWidget() {
     )
   }
 
-  // Если нужно показать версию от Lovable, импортируем и рендерим её
+  // Если нужно показать версию от Lovable, рендерим её
   if (showLovableVersion) {
-    return <LovableBookingWidget />
+    return <BookingWidgetLovable />
   }
 
 

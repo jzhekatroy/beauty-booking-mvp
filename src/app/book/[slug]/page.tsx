@@ -192,6 +192,8 @@ export default function BookingWidget() {
 
   const loadInitialData = async () => {
     try {
+      console.log("🔄 Loading initial data for slug:", slug)
+      console.log("📡 Fetching team data...")
       setLoading(true)
 
       // Загружаем данные команды
@@ -202,7 +204,7 @@ export default function BookingWidget() {
       const teamData = await teamResponse.json()
       
       setTeam(teamData)
-      // Применяем публичные настройки UX
+      console.log("✅ Team data loaded:", teamData)      // Применяем публичные настройки UX
       try {
         const usePhotos = Boolean(teamData?.team?.publicServiceCardsWithPhotos ?? true)
         const theme = (teamData?.team?.publicTheme as string) || 'light'
@@ -457,6 +459,7 @@ export default function BookingWidget() {
 
   // Отдельный лейаут для шага выбора услуг — как в архиве (без Card, ограниченная ширина)
   if (currentStep === 'select-services') {
+    console.log("🔄 select-services step, rendering VersionToggle")
     return (
       <div className={isDarkLocal ? 'min-h-screen bg-neutral-800/30 text-neutral-100' : 'min-h-screen bg-slate-50/80 text-foreground'}>
         <VersionToggle />

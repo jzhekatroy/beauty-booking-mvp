@@ -46,7 +46,7 @@ export default function BookingWidget() {
     return new URLSearchParams()
   })
   const showLovableVersion = searchParams.get('lovable') === 'true'
-
+  console.log("🔄 showLovableVersion:", showLovableVersion, "searchParams:", searchParams.toString())
   const [currentStep, setCurrentStep] = useState<BookingStep>('select-services')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -407,10 +407,11 @@ export default function BookingWidget() {
   // Компонент переключателя версий
   const VersionToggle = () => {
     const [isLovable, setIsLovable] = useState<boolean>(showLovableVersion)
-    
+    console.log("🔄 VersionToggle rendered, showLovableVersion:", showLovableVersion, "isLovable:", isLovable)    
     const toggleVersion = () => {
       const newVersion = !isLovable
       setIsLovable(newVersion)
+      console.log("🔄 Toggle version clicked, current isLovable:", isLovable)
       const url = new URL(window.location.href)
       if (newVersion) {
         url.searchParams.set('lovable', 'true')

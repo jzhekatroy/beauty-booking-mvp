@@ -381,7 +381,7 @@ export default function BookingWidget() {
 
   // Если нужно показать версию от Lovable, импортируем и рендерим её
   if (showLovableVersion) {
-    const BookingWidgetLovable = require('./page-lovable').default
+    const BookingWidgetLovable = require("./page-lovable").default
     return <BookingWidgetLovable />
   }
 

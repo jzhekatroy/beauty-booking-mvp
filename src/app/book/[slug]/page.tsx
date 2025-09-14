@@ -46,7 +46,6 @@ export default function BookingWidget() {
     return new URLSearchParams()
   })
   const showLovableVersion = searchParams.get('lovable') === 'true'
-  console.log("🔄 showLovableVersion:", showLovableVersion, "searchParams:", searchParams.toString())
   const [currentStep, setCurrentStep] = useState<BookingStep>('select-services')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -192,8 +191,6 @@ export default function BookingWidget() {
 
   const loadInitialData = async () => {
     try {
-      console.log("🔄 Loading initial data for slug:", slug)
-      console.log("📡 Fetching team data...")
       setLoading(true)
 
       // Загружаем данные команды
@@ -204,7 +201,7 @@ export default function BookingWidget() {
       const teamData = await teamResponse.json()
       
       setTeam(teamData)
-      console.log("✅ Team data loaded:", teamData)      // Применяем публичные настройки UX
+      // Применяем публичные настройки UX
       try {
         const usePhotos = Boolean(teamData?.team?.publicServiceCardsWithPhotos ?? true)
         const theme = (teamData?.team?.publicTheme as string) || 'light'
@@ -335,30 +332,26 @@ export default function BookingWidget() {
     }
   }
 
-  // Публичная страница: тема берётся из настроек команды, слушатели не нужны
   // Компонент переключателя версий
   const VersionToggle = () => {
     const [isLovable, setIsLovable] = useState<boolean>(showLovableVersion)
-    console.log("🔄 VersionToggle rendered, showLovableVersion:", showLovableVersion, "isLovable:", isLovable)    
     const toggleVersion = () => {
       const newVersion = !isLovable
       setIsLovable(newVersion)
-      console.log("🔄 Toggle version clicked, current isLovable:", isLovable)
       const url = new URL(window.location.href)
       if (newVersion) {
         url.searchParams.set("lovable", "true")
       } else {
         url.searchParams.delete("lovable")
       }
-      console.log("🔄 Redirecting to:", url.toString())
       window.location.href = url.toString()
     }
 
     return (
-      <div className="fixed top-4 right-4 z-[9999] bg-red-500 p-4 rounded text-white font-bold">
+      <div className="fixed top-4 right-4 z-[9999]">
         <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
-          <div className="flex items-center gap-3">
-            <div className="text-sm font-medium text-gray-700">TOGGLE TEST:</div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">UI:</span>
             <button
               onClick={toggleVersion}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -384,6 +377,8 @@ export default function BookingWidget() {
       </div>
     )
   }
+
+  // Публичная страница: тема берётся из настроек команды, слушатели не нужны
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
@@ -459,7 +454,6 @@ export default function BookingWidget() {
 
   // Отдельный лейаут для шага выбора услуг — как в архиве (без Card, ограниченная ширина)
   if (currentStep === 'select-services') {
-    console.log("🔄 select-services step, rendering VersionToggle")
     return (
       <div className={isDarkLocal ? 'min-h-screen bg-neutral-800/30 text-neutral-100' : 'min-h-screen bg-slate-50/80 text-foreground'}>
         <VersionToggle />
@@ -571,9 +565,4 @@ export default function BookingWidget() {
       </Card>
     </div>
   )
-}// Force rebuild Sun Sep 14 14:13:27 MSK 2025
-// Force rebuild Sun Sep 14 14:22:16 MSK 2025
-// Force rebuild Sun Sep 14 14:22:57 MSK 2025
-// Force rebuild Sun Sep 14 14:23:37 MSK 2025
-// Force rebuild Sun Sep 14 14:24:10 MSK 2025
-// Force rebuild Sun Sep 14 14:24:51 MSK 2025
+}

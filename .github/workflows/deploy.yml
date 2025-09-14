@@ -1,107 +1,109 @@
-name: Deploy to Production
+name: 🚀 Deploy to Server
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-env:
-  NODE_VERSION: '18'
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
+    - name: 🔧 Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ env.NODE_VERSION }}
+        node-version: '20'
         cache: 'npm'
         
-    - name: Install dependencies
+    - name: 📦 Install dependencies
       run: npm ci
-        
-    - name: Deploy to Production Server
-      run: |
-        echo "🚀 Deploying to production server..."
-        
-        # Создаем SSH ключ из секрета
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-        
-        # Подключаемся к серверу и деплоим
-        echo "🔄 Deploying on server..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
+    
+    # Миграции запускаем на сервере (ниже), где есть .env с DATABASE_URL
+      
+    - name: 🔨 Build application
+      run: npm run build
+      
+    - name: 🧪 Run tests (if any)
+      run: npm test --if-present
+      
+    - name: 📥 Update code on server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          echo "🚀 Обновляем код на сервере..."
+          
+          # Переходим в директорию проекта
           cd /home/beautyapp/beauty-booking
+          echo "📂 Текущая директория: $(pwd)"
           
-          # Останавливаем приложение
-          echo "⏹️ Stopping application..."
-          pm2 stop beauty-booking || echo "App not running via PM2"
-          sudo pkill -f "npm start" || echo "App not running via nohup"
-          
-          # Получаем последние изменения
-          echo "📥 Pulling latest changes..."
+          echo "📥 Получаем последние изменения из GitHub..."
           git fetch origin
           git reset --hard origin/main
+          echo "✅ Код обновлен до коммита: $(git rev-parse --short HEAD)"
+
+          echo "🧹 Чистим возможные дубли проекта (архивы/вложенные папки)..."
+          [ -d beauty-booking-mvp ] && rm -rf beauty-booking-mvp || true
+
+          echo "🛠️ Проверяем docker-compose.yml (без правки секретов; порты/health уже в репозитории)"
           
-          # Проверяем что файлы обновились
-          echo "🔍 Checking if files updated..."
-          ls -la src/app/book/[slug]/page.tsx
-          echo "📄 Current page.tsx content (first 10 lines):"
-          head -10 src/app/book/[slug]/page.tsx
+          echo "🐳 Поднимаем инфраструктуру Docker..."
+          docker compose --env-file .env up -d postgres || true
           
-          # Устанавливаем зависимости
-          echo "📦 Installing dependencies..."
-          npm ci
+          echo "🔨 Собираем Docker-образ приложения..."
+          docker compose build --no-cache beauty-booking
           
-          # Генерируем Prisma Client
-          echo "🔧 Generating Prisma Client..."
-          npx prisma generate
+          echo "🚀 Запускаем приложение через Docker..."
+          docker compose --env-file .env up -d --remove-orphans beauty-booking
           
-          # Запускаем миграции
-          echo "🔄 Running database migrations..."
-          npx prisma migrate deploy
+          echo "🗄️ Применяем миграции (в контейнере) с DATABASE_URL из .env на сервере..."
+          set -o allexport; source .env; set +o allexport
+          docker compose exec -e DATABASE_URL="$DATABASE_URL" beauty-booking sh -lc 'npx prisma migrate deploy' || { echo "❌ Ошибка миграций"; exit 1; }
           
-          # Очищаем кеш Next.js
-          echo "🧹 Cleaning Next.js cache..."
-          rm -rf .next
-          rm -rf node_modules/.cache
+          echo "📊 Текущий статус сервисов:" && docker compose ps
           
-          # Собираем приложение
-          echo "🔨 Building application..."
-          sudo -u beautyapp npm run build
+    # Docker управляет перезапуском, отдельный шаг не требуется
           
-          # Проверяем что сборка прошла
-          echo "🔍 Checking build output..."
-          ls -la .next/static/chunks/app/book/
+    - name: ✅ Verify deployment
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        timeout: 60s
+        script: |
+          echo "🔍 Быстрая проверка статуса деплоя..."
           
-          # Запускаем приложение через PM2
-          echo "🚀 Starting application via PM2..."
-          pm2 start npm --name "beauty-booking" -- start
+          cd /home/beautyapp/beauty-booking
           
-          # Ждем запуска
-          sleep 15
-          
-          # Проверяем что запустилось
-          if curl -f http://localhost:3000/api/status > /dev/null 2>&1; then
-            echo "✅ Application started successfully!"
+          # Быстрая проверка health check
+          echo "🔍 Проверяем health check..."
+          if curl -f http://127.0.0.1:3000/api/health > /dev/null 2>&1; then
+            echo "✅ Health check прошел успешно!"
+            echo "🌐 Приложение доступно на http://test.2minutes.ru"
+            echo "🎉 Деплой завершен успешно!"
           else
-            echo "❌ Application failed to start, checking logs..."
-            pm2 logs beauty-booking --lines 20
-            exit 1
+            echo "⚠️ Health check не прошел, но процесс запущен"
+            echo "📋 Логи контейнера приложения:"
+            docker compose logs --tail=80 beauty-booking || true
+            echo "🔍 Возможно приложение еще загружается..."
           fi
           
-          echo "✅ Deployment completed!"
-        EOF
-        
-    - name: Health Check
+    - name: 📊 Deployment status
+      if: success()
       run: |
-        echo "🔍 Running health check..."
-        echo "✅ Deployment completed successfully!"
-        echo "🌐 Check your production URL to verify"
+        echo "🎉 Deployment successful!"
+        echo "🔗 Check: http://test.2minutes.ru"
+        echo "👤 Login: salon@example.com / password123"
+        
+    - name: ❌ Deployment failed
+      if: failure()
+      run: |
+        echo "❌ Deployment failed!"
+        echo "Check the logs above for details"

@@ -42,12 +42,19 @@ jobs:
           
           # Останавливаем приложение
           echo "⏹️ Stopping application..."
-          sudo pkill -f "npm start" || echo "App not running"
+          pm2 stop beauty-booking || echo "App not running via PM2"
+          sudo pkill -f "npm start" || echo "App not running via nohup"
           
           # Получаем последние изменения
           echo "📥 Pulling latest changes..."
           git fetch origin
           git reset --hard origin/main
+          
+          # Проверяем что файлы обновились
+          echo "🔍 Checking if files updated..."
+          ls -la src/app/book/[slug]/page.tsx
+          echo "📄 Current page.tsx content (first 10 lines):"
+          head -10 src/app/book/[slug]/page.tsx
           
           # Устанавливаем зависимости
           echo "📦 Installing dependencies..."
@@ -61,23 +68,32 @@ jobs:
           echo "🔄 Running database migrations..."
           npx prisma migrate deploy
           
+          # Очищаем кеш Next.js
+          echo "🧹 Cleaning Next.js cache..."
+          rm -rf .next
+          rm -rf node_modules/.cache
+          
           # Собираем приложение
           echo "🔨 Building application..."
           sudo -u beautyapp npm run build
           
-          # Запускаем приложение
-          echo "🚀 Starting application..."
-          sudo -u beautyapp nohup npm start > nohup.out 2>&1 &
+          # Проверяем что сборка прошла
+          echo "🔍 Checking build output..."
+          ls -la .next/static/chunks/app/book/
+          
+          # Запускаем приложение через PM2
+          echo "🚀 Starting application via PM2..."
+          pm2 start npm --name "beauty-booking" -- start
           
           # Ждем запуска
-          sleep 10
+          sleep 15
           
           # Проверяем что запустилось
           if curl -f http://localhost:3000/api/status > /dev/null 2>&1; then
             echo "✅ Application started successfully!"
           else
             echo "❌ Application failed to start, checking logs..."
-            tail -20 nohup.out
+            pm2 logs beauty-booking --lines 20
             exit 1
           fi
           

@@ -332,6 +332,33 @@ export default function BookingWidget() {
     }
   }
 
+  // Компонент для Lovable версии
+  const [LovableComponent, setLovableComponent] = useState<React.ComponentType | null>(null)
+  
+  useEffect(() => {
+    if (showLovableVersion) {
+      import("./page-lovable").then((module) => {
+        setLovableComponent(() => module.default)
+      })
+    }
+  }, [showLovableVersion])
+  
+  const LovableBookingWidget = () => {
+    if (!LovableComponent) {
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
+            <p className="text-gray-600">Загрузка Lovable версии...</p>
+          </div>
+        </div>
+      )
+    }
+    
+    const BookingWidgetLovable = LovableComponent
+    return <BookingWidgetLovable />
+  }
+
   // Компонент переключателя версий
   const VersionToggle = () => {
     const [isLovable, setIsLovable] = useState<boolean>(showLovableVersion)
@@ -426,27 +453,7 @@ export default function BookingWidget() {
 
   // Если нужно показать версию от Lovable, импортируем и рендерим её
   if (showLovableVersion) {
-    const [LovableComponent, setLovableComponent] = useState<React.ComponentType | null>(null)
-    
-    useEffect(() => {
-      import("./page-lovable").then((module) => {
-        setLovableComponent(() => module.default)
-      })
-    }, [])
-    
-    if (!LovableComponent) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
-            <p className="text-gray-600">Загрузка Lovable версии...</p>
-          </div>
-        </div>
-      )
-    }
-    
-    const BookingWidgetLovable = LovableComponent
-    return <BookingWidgetLovable />
+    return <LovableBookingWidget />
   }
 
 

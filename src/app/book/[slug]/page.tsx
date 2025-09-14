@@ -37,6 +37,15 @@ export default function BookingWidget() {
   const params = useParams()
   const slug = params?.slug as string
   const telegramWebApp = useTelegramWebApp()
+  
+  // Проверяем, нужно ли показать версию от Lovable
+  const [searchParams] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search)
+    }
+    return new URLSearchParams()
+  })
+  const showLovableVersion = searchParams.get('lovable') === 'true'
 
   const [currentStep, setCurrentStep] = useState<BookingStep>('select-services')
   const [loading, setLoading] = useState(true)
@@ -370,12 +379,66 @@ export default function BookingWidget() {
     )
   }
 
+  // Если нужно показать версию от Lovable, импортируем и рендерим её
+  if (showLovableVersion) {
+    const BookingWidgetLovable = require('./page-lovable').default
+    return <BookingWidgetLovable />
+  }
+
+  // Компонент переключателя версий
+  const VersionToggle = () => {
+    const [isLovable, setIsLovable] = useState(showLovableVersion)
+    
+    const toggleVersion = () => {
+      const newVersion = !isLovable
+      setIsLovable(newVersion)
+      const url = new URL(window.location.href)
+      if (newVersion) {
+        url.searchParams.set('lovable', 'true')
+      } else {
+        url.searchParams.delete('lovable')
+      }
+      window.location.href = url.toString()
+    }
+
+    return (
+      <div className="fixed top-4 right-4 z-50">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-3">
+          <div className="flex items-center gap-3">
+            <div className="text-sm font-medium text-gray-700">UI:</div>
+            <button
+              onClick={toggleVersion}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                !isLovable 
+                  ? 'bg-gray-600 text-white' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Оригинал
+            </button>
+            <button
+              onClick={toggleVersion}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isLovable 
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Lovable
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
 
 
   // Отдельный лейаут для шага выбора услуг — как в архиве (без Card, ограниченная ширина)
   if (currentStep === 'select-services') {
     return (
       <div className={isDarkLocal ? 'min-h-screen bg-neutral-800/30 text-neutral-100' : 'min-h-screen bg-slate-50/80 text-foreground'}>
+        <VersionToggle />
         <div className={`w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 border-l-2 border-r-2 min-h-screen ${isDarkLocal ? 'border-gray-600' : 'border-gray-200'}`}>
           {/* Header with logo and salon description - верхняя часть с теплым тоном */}
           <div className={`text-center mb-12 rounded-2xl p-8 ${isDarkLocal ? 'bg-neutral-800/50' : 'bg-amber-50/80'}`}>
@@ -438,6 +501,7 @@ export default function BookingWidget() {
   // Лейаут для остальных шагов остаётся прежним в Card
   return (
     <div className={isDarkLocal ? 'min-h-screen bg-neutral-900 text-neutral-100 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8' : 'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8'}>
+      <VersionToggle />
       <Card className={isDarkLocal ? 'w-full max-w-5xl bg-neutral-800/80 backdrop-blur-lg shadow-xl rounded-xl p-4 sm:p-6 lg:p-8 space-y-6 border-2 border-neutral-600 relative overflow-hidden' : 'w-full max-w-5xl bg-white/80 backdrop-blur-lg shadow-xl rounded-xl p-4 sm:p-6 lg:p-8 space-y-6 border-2 border-gray-300 relative overflow-hidden'}>
         {team?.team?.logoUrl && (
           <img

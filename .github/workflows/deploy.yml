@@ -61,7 +61,7 @@ jobs:
         # Подключаемся к серверу и деплоим
         echo "🔄 Deploying on server..."
         ssh -o StrictHostKeyChecking=no ${{ secrets.USERNAME }}@${{ secrets.HOST }} << 'EOF'
-          cd /home/beautyapp/beauty-booking
+          cd /app
           
           # Останавливаем приложение
           echo "⏹️ Stopping application..."

@@ -376,6 +376,7 @@ export default function BookingWidgetLovable() {
           {/* Уведомление об активных записях */}
           <ActiveBookingsNotification 
             activeBookings={activeBookings}
+            onCancelBooking={async (bookingId: string) => {}}
             isLoading={isLoadingBookings}
           />
 

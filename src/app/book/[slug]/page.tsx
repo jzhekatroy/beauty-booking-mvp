@@ -387,7 +387,7 @@ export default function BookingWidget() {
 
   // Компонент переключателя версий
   const VersionToggle = () => {
-    const [isLovable, setIsLovable] = useState(showLovableVersion)
+    const [isLovable, setIsLovable] = useState<boolean>(showLovableVersion)
     
     const toggleVersion = () => {
       const newVersion = !isLovable

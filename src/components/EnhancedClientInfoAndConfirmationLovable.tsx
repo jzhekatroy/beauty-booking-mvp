@@ -65,29 +65,73 @@ export function EnhancedClientInfoAndConfirmationLovable({
 
       // Устанавливаем обработчик события
       const handleContactRequested = (contact: any) => {
-        console.log('📱 Contact data received:', contact)
-        if (contact?.phone_number) {
-          handleInputChange('phone', contact.phone_number)
-          if (contact.first_name) {
-            handleInputChange('firstName', contact.first_name)
-          }
-          if (contact.last_name) {
-            handleInputChange('lastName', contact.last_name)
-          }
-        }
+        console.log('📱 ===== КОНТАКТ ПОЛУЧЕН ЧЕРЕЗ СОБЫТИЕ =====')
+        console.log('📱 Contact data:', contact)
+        console.log('📱 Contact type:', typeof contact)
+        console.log('📱 Contact keys:', contact ? Object.keys(contact) : 'null')
+        console.log('📱 Phone number:', contact?.phone_number)
+        
         setIsRequestingPhone(false)
+        
+        // Проверяем разные форматы контакта
+        let phoneNumber = null
+        let firstName = null
+        let lastName = null
+        
+        if (contact?.phone_number) {
+          phoneNumber = contact.phone_number
+          firstName = contact.first_name
+          lastName = contact.last_name
+        } else if (contact?.contact?.phone_number) {
+          phoneNumber = contact.contact.phone_number
+          firstName = contact.contact.first_name
+          lastName = contact.contact.last_name
+        } else if (contact?.responseUnsafe?.contact?.phone_number) {
+          phoneNumber = contact.responseUnsafe.contact.phone_number
+          firstName = contact.responseUnsafe.contact.first_name
+          lastName = contact.responseUnsafe.contact.last_name
+        }
+        
+        if (phoneNumber) {
+          console.log('✅ Получен контакт из Telegram:', contact)
+          console.log('✅ Phone number extracted:', phoneNumber)
+          
+          // Обновляем все поля сразу
+          onClientInfoChange({
+            ...bookingData.clientInfo,
+            phone: phoneNumber,
+            firstName: firstName || bookingData.clientInfo.firstName,
+            lastName: lastName || bookingData.clientInfo.lastName
+          })
+          
+          // Убираем обработчики после получения контакта
+          if (telegramWebApp.webApp) {
+            telegramWebApp.webApp.offEvent('contactRequested', handleContactRequested)
+            telegramWebApp.webApp.offEvent('contact_requested', handleContactRequested)
+            telegramWebApp.webApp.offEvent('contact', handleContactRequested)
+          }
+        } else {
+          console.log('❌ Не удалось извлечь номер телефона из контакта')
+          alert('Не удалось получить номер телефона. Попробуйте ввести вручную.')
+        }
       }
 
-      // Добавляем обработчик события
-      telegramWebApp.webApp.onEvent('contactRequested', handleContactRequested)
+      // Добавляем обработчики для разных событий
+      if (telegramWebApp.webApp) {
+        telegramWebApp.webApp.onEvent('contactRequested', handleContactRequested)
+        telegramWebApp.webApp.onEvent('contact_requested', handleContactRequested)
+        telegramWebApp.webApp.onEvent('contact', handleContactRequested)
+      }
 
       // Запрашиваем контакт
       telegramWebApp.webApp.requestContact()
 
-      // Убираем обработчик через 30 секунд
+      // Убираем обработчики через 30 секунд
       setTimeout(() => {
         if (telegramWebApp.webApp) {
           telegramWebApp.webApp.offEvent('contactRequested', handleContactRequested)
+          telegramWebApp.webApp.offEvent('contact_requested', handleContactRequested)
+          telegramWebApp.webApp.offEvent('contact', handleContactRequested)
         }
         setIsRequestingPhone(false)
       }, 30000)

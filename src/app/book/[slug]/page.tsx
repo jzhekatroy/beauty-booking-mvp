@@ -571,4 +571,4 @@ export default function BookingWidget() {
       </Card>
     </div>
   )
-}
+}// Force rebuild Sun Sep 14 14:13:27 MSK 2025

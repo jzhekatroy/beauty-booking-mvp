@@ -7,7 +7,6 @@ on:
 
 env:
   NODE_VERSION: '18'
-  DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
 jobs:
   deploy:
@@ -25,22 +24,6 @@ jobs:
         
     - name: Install dependencies
       run: npm ci
-      
-    - name: Generate Prisma Client
-      run: npx prisma generate
-        
-    - name: Run Database Migrations
-      run: npx prisma migrate deploy
-        
-    - name: Verify Database Schema
-      run: npx prisma db push --accept-data-loss
-        
-    - name: Seed Database (if needed)
-      run: npx prisma db seed
-      continue-on-error: true
-        
-    - name: Build Application
-      run: npm run build
         
     - name: Deploy to Production Server
       run: |

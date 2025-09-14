@@ -28,6 +28,7 @@ export function EnhancedClientInfoAndConfirmationLovable({
 }: EnhancedClientInfoAndConfirmationProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRequestingPhone, setIsRequestingPhone] = useState(false)
   const telegramWebApp = useTelegramWebApp()
 
   const handleInputChange = (field: keyof ClientInfo, value: string) => {
@@ -35,6 +36,58 @@ export function EnhancedClientInfoAndConfirmationLovable({
       ...bookingData.clientInfo,
       [field]: value
     })
+  }
+
+  const handleRequestContact = async () => {
+    if (!telegramWebApp.isAvailable) {
+      alert('Функция доступна только в Telegram WebApp')
+      return
+    }
+
+    setIsRequestingPhone(true)
+    
+    try {
+      // Проверяем, доступен ли метод requestContact
+      if (typeof telegramWebApp.webApp.requestContact !== 'function') {
+        console.log('❌ requestContact method not available')
+        alert('Функция запроса контакта недоступна в этой версии Telegram')
+        return
+      }
+
+      console.log('✅ requestContact method available, proceeding with contact request...')
+
+      // Устанавливаем обработчик события
+      const handleContactRequested = (contact: any) => {
+        console.log('📱 Contact data received:', contact)
+        if (contact?.phone_number) {
+          handleInputChange('phone', contact.phone_number)
+          if (contact.first_name) {
+            handleInputChange('firstName', contact.first_name)
+          }
+          if (contact.last_name) {
+            handleInputChange('lastName', contact.last_name)
+          }
+        }
+        setIsRequestingPhone(false)
+      }
+
+      // Добавляем обработчик события
+      telegramWebApp.webApp.onEvent('contactRequested', handleContactRequested)
+
+      // Запрашиваем контакт
+      telegramWebApp.webApp.requestContact()
+
+      // Убираем обработчик через 30 секунд
+      setTimeout(() => {
+        telegramWebApp.webApp.offEvent('contactRequested', handleContactRequested)
+        setIsRequestingPhone(false)
+      }, 30000)
+
+    } catch (error) {
+      console.error('Error requesting contact:', error)
+      alert('Ошибка при запросе контакта')
+      setIsRequestingPhone(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -105,16 +158,32 @@ export function EnhancedClientInfoAndConfirmationLovable({
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Телефон *
             </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="tel"
-                value={bookingData.clientInfo.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+7 (999) 123-45-67"
-                className="pl-10 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 transition-colors"
-                required
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="tel"
+                  value={bookingData.clientInfo.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  placeholder="+7 (999) 123-45-67"
+                  className="pl-10 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 transition-colors"
+                  required
+                />
+              </div>
+              {telegramWebApp.isAvailable && (
+                <Button
+                  type="button"
+                  onClick={handleRequestContact}
+                  disabled={isRequestingPhone}
+                  className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all duration-200 disabled:opacity-50"
+                >
+                  {isRequestingPhone ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <Phone className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
             </div>
           </div>
           

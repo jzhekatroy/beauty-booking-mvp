@@ -14,8 +14,10 @@ async function ensureTemplatesSchema() {
       created_at timestamp with time zone NOT NULL DEFAULT now(),
       updated_at timestamp with time zone NOT NULL DEFAULT now(),
       CONSTRAINT message_templates_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id) ON DELETE CASCADE
-    );
-    CREATE UNIQUE INDEX IF NOT EXISTS message_templates_team_key_idx ON public.message_templates(team_id, key);
+    )
+  `)
+  await prisma.$executeRawUnsafe(`
+    CREATE UNIQUE INDEX IF NOT EXISTS message_templates_team_key_idx ON public.message_templates(team_id, key)
   `)
 }
 
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error'
     const status = message.includes('Токен авторизации') ? 401 : 500
-    return NextResponse.json({ error: message }, { status })
+    return NextResponse.json({ error: message, details: process.env.NODE_ENV !== 'production' ? String(message) : undefined }, { status })
   }
 }
 
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error'
     const status = message.includes('Токен авторизации') ? 401 : 500
-    return NextResponse.json({ error: message }, { status })
+    return NextResponse.json({ error: message, details: process.env.NODE_ENV !== 'production' ? String(message) : undefined }, { status })
   }
 }
 

@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 
 async function ensurePolicySchema() {
-  // Создаем таблицу, если её нет (idempotent)
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS public.team_notification_policies (
       id text PRIMARY KEY,
@@ -13,7 +12,7 @@ async function ensurePolicySchema() {
       created_at timestamp with time zone NOT NULL DEFAULT now(),
       updated_at timestamp with time zone NOT NULL DEFAULT now(),
       CONSTRAINT team_notification_policies_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id) ON DELETE CASCADE
-    );
+    )
   `)
 }
 
@@ -52,7 +51,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error'
     const status = message.includes('Токен авторизации') ? 401 : 500
-    return NextResponse.json({ error: message }, { status })
+    return NextResponse.json({ error: message, details: process.env.NODE_ENV !== 'production' ? String(message) : undefined }, { status })
   }
 }
 
@@ -101,7 +100,7 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error'
     const status = message.includes('Токен авторизации') ? 401 : 500
-    return NextResponse.json({ error: message }, { status })
+    return NextResponse.json({ error: message, details: process.env.NODE_ENV !== 'production' ? String(message) : undefined }, { status })
   }
 }
 

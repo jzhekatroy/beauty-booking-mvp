@@ -3,8 +3,8 @@
 import { useState } from 'react'
 
 export default function AdminNotificationsRoot() {
-  const [openNotifications, setOpenNotifications] = useState(true)
-  const [openBroadcast, setOpenBroadcast] = useState(true)
+  const [openNotifications, setOpenNotifications] = useState(false)
+  const [openBroadcast, setOpenBroadcast] = useState(false)
 
   // Локальное состояние (пока без API)
   const [delayAfterBookingSec, setDelayAfterBookingSec] = useState<number>(60)

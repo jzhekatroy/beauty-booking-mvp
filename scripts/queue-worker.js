@@ -6,7 +6,8 @@
 */
 
 const { PrismaClient } = require('@prisma/client');
-const fetch = require('node-fetch');
+// Используем встроенный fetch из Node 18+
+const fetchFn = globalThis.fetch;
 
 const prisma = new PrismaClient();
 
@@ -37,7 +38,7 @@ async function tryLockOne() {
 }
 
 async function sendTelegramMessageViaBot(teamBotToken, chatId, text) {
-  const resp = await fetch(`https://api.telegram.org/bot${teamBotToken}/sendMessage`, {
+  const resp = await fetchFn(`https://api.telegram.org/bot${teamBotToken}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML' }),

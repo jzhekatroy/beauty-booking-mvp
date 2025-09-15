@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, context: any) {
   try {
-    const id = params.id
+    const id = context?.params?.id as string
     const log = await prisma.notificationLog.findUnique({ where: { id }, include: { team: true, client: true } })
     if (!log) return NextResponse.json({ error: 'Log not found' }, { status: 404 })
     if (!log.clientId || !log.team?.telegramBotToken) {

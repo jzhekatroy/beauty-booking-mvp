@@ -262,22 +262,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Дополнительные настройки</h4>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.webhooksEnabled}
-                    readOnly
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label className="ml-3 text-sm text-gray-700">
-                    Включить уведомления
-                  </label>
-                </div>
-              </div>
-            </div>
+            {/* Блок дополнительных настроек уведомлений удален по требованиям */}
 
             {settings.privacyPolicyUrl && (
               <div className="mt-6">

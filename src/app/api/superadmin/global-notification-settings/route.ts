@@ -7,11 +7,18 @@ export async function GET(request: NextRequest) {
     // Получаем или создаем глобальные настройки
     let settings = await prisma.globalNotificationSettings.findFirst()
 
-    // Если настроек нет, создаем с дефолтными значениями
+    // Если настроек нет, создаем с явными дефолтными значениями (на случай, если в прод-таблице нет SQL DEFAULT)
     if (!settings) {
       settings = await prisma.globalNotificationSettings.create({
         data: {
-          // Дефолтные значения уже установлены в схеме
+          maxRequestsPerMinute: 25,
+          requestDelayMs: 2000,
+          maxRetryAttempts: 3,
+          retryDelayMs: 5000,
+          exponentialBackoff: true,
+          failureThreshold: 5,
+          recoveryTimeoutMs: 60000,
+          enabled: true,
         }
       })
     }
@@ -23,13 +30,22 @@ export async function GET(request: NextRequest) {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     })
-    return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
+    // Отдаем безопасный фолбэк, чтобы UI не падал
+    return NextResponse.json({
+      settings: {
+        id: 'global-default',
+        maxRequestsPerMinute: 25,
+        requestDelayMs: 2000,
+        maxRetryAttempts: 3,
+        retryDelayMs: 5000,
+        exponentialBackoff: true,
+        failureThreshold: 5,
+        recoveryTimeoutMs: 60000,
+        enabled: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    })
   }
 }
 

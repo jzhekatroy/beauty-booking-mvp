@@ -3,6 +3,17 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 
 async function ensureBroadcastSchema() {
+  // Ensure Prisma enum type exists for BroadcastCampaignStatus
+  await prisma.$executeRawUnsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'BroadcastCampaignStatus') THEN
+        CREATE TYPE "public"."BroadcastCampaignStatus" AS ENUM (
+          'DRAFT','SCHEDULED','RUNNING','PAUSED','COMPLETED','FAILED','CANCELLED'
+        );
+      END IF;
+    END$$;
+  `)
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS public.broadcast_campaigns (
       id text PRIMARY KEY,
@@ -10,7 +21,7 @@ async function ensureBroadcastSchema() {
       name text NULL,
       message text NULL,
       template_id text NULL,
-      status text NOT NULL DEFAULT 'DRAFT',
+      status "public"."BroadcastCampaignStatus" NOT NULL DEFAULT 'DRAFT',
       scheduled_at timestamp with time zone NULL,
       started_at timestamp with time zone NULL,
       completed_at timestamp with time zone NULL,
@@ -25,6 +36,11 @@ async function ensureBroadcastSchema() {
   `)
   await prisma.$executeRawUnsafe(`
     CREATE INDEX IF NOT EXISTS broadcast_campaigns_team_status_idx ON public.broadcast_campaigns(team_id, status)
+  `)
+
+  // Ensure campaign_id column in notification_logs for relation (no FK to avoid failures if table missing)
+  await prisma.$executeRawUnsafe(`
+    ALTER TABLE public.notification_logs ADD COLUMN IF NOT EXISTS campaign_id text
   `)
 }
 

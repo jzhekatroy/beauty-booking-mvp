@@ -393,14 +393,6 @@ export default function AdminNotificationsRoot() {
                 {/* Фото (опционально) */}
                 <div className="border rounded-md p-4">
                   <div className="font-medium mb-2">Фото (опционально)</div>
-                  <label className="block text-sm text-gray-700 mb-1">Ссылка на фото (URL)</label>
-                  <input
-                    type="text"
-                    value={photoUrl}
-                    onChange={(e) => setPhotoUrl(e.target.value)}
-                    placeholder="https://.../image.jpg"
-                    className="w-full border rounded px-3 py-2"
-                  />
                   <div className="mt-2 flex gap-2">
                     <button
                       type="button"

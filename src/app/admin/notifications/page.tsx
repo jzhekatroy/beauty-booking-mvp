@@ -378,7 +378,7 @@ export default function AdminNotificationsRoot() {
                 </div>
 
                 <div className="mt-3">
-                  <label className="block text-sm text-gray-700 mb-1">Или введите Telegram ник (@username)</label>
+                  <label className="block text-sm text-gray-700 mb-1">Введите Telegram ник (@username)</label>
                   <input value={testUsername} onChange={e => setTestUsername(e.target.value)} placeholder="@username" className="border rounded px-3 py-2 min-w-[240px]" />
                   <div className="text-xs text-gray-500 mt-1">Если указан ник, можно не выбирать клиента</div>
                 </div>

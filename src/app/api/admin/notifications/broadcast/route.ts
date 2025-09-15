@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
+import { getTimezoneOffsetMinutes } from '@/lib/timezone'
 
 async function ensureBroadcastSchema() {
   // Ensure Prisma enum type exists for BroadcastCampaignStatus
@@ -66,11 +67,25 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const message: string = String(body.message || '').trim()
     const scheduledAtRaw: string = String(body.scheduledAt || '')
-    const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw) : null
     const name: string | null = body.name ? String(body.name).trim() : null
 
     if (!message) {
       return NextResponse.json({ error: 'Текст сообщения обязателен' }, { status: 400 })
+    }
+
+    // Рассчитываем executeAt с учётом часового пояса команды
+    let scheduledAt: Date | null = null
+    if (scheduledAtRaw) {
+      // Ожидаем формат от <input type="datetime-local">: YYYY-MM-DDTHH:mm
+      const m = scheduledAtRaw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+      if (m) {
+        const [_, y, mo, d, h, mi] = m
+        const offsetMin = getTimezoneOffsetMinutes(user.team.timezone)
+        const msUtc = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi)) - offsetMin * 60000
+        scheduledAt = new Date(msUtc)
+      } else {
+        scheduledAt = new Date(scheduledAtRaw)
+      }
     }
 
     // Получаем получателей: все клиенты с Telegram

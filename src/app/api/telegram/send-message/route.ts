@@ -39,11 +39,48 @@ export async function POST(request: NextRequest) {
     const telegramResult = await telegramResponse.json()
 
     if (!telegramResponse.ok) {
+      // Логируем неуспешную отправку
+      try {
+        await prisma.notificationLog.create({
+          data: {
+            type: 'manual_send',
+            teamId: client.teamId,
+            clientId: client.id,
+            message,
+            status: 'FAILED',
+            telegramMessageId: null,
+            errorMessage: JSON.stringify(telegramResult),
+            attempts: 1,
+            processingTimeMs: null,
+            userAgent: request.headers.get('user-agent') || 'unknown',
+            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
+          }
+        })
+      } catch {}
       return NextResponse.json({
         error: 'Ошибка отправки сообщения в Telegram',
         details: telegramResult
       }, { status: 400 })
     }
+
+    // Логируем успешную отправку
+    try {
+      await prisma.notificationLog.create({
+        data: {
+          type: 'manual_send',
+          teamId: client.teamId,
+          clientId: client.id,
+          message,
+          status: 'SUCCESS',
+          telegramMessageId: String(telegramResult.result?.message_id || ''),
+          errorMessage: null,
+          attempts: 1,
+          processingTimeMs: null,
+          userAgent: request.headers.get('user-agent') || 'unknown',
+          ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
+        }
+      })
+    } catch {}
 
     return NextResponse.json({
       success: true,

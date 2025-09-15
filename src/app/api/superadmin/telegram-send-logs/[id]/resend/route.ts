@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const id = params.id
     const log = await prisma.notificationLog.findUnique({ where: { id }, include: { team: true, client: true } })

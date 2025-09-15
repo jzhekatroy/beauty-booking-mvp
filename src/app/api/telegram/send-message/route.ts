@@ -23,69 +23,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'У салона не настроен Telegram Bot' }, { status: 400 })
     }
 
-    // Отправляем сообщение через Telegram Bot API
-    const telegramResponse = await fetch(`https://api.telegram.org/bot${client.team.telegramBotToken}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: client.telegramId.toString(),
-        text: message,
-        parse_mode: 'HTML'
-      })
-    })
-
-    const telegramResult = await telegramResponse.json()
-
-    if (!telegramResponse.ok) {
-      // Логируем неуспешную отправку
-      try {
-        await prisma.notificationLog.create({
-          data: {
-            type: 'manual_send',
-            teamId: client.teamId,
-            clientId: client.id,
-            message,
-            status: 'FAILED',
-            telegramMessageId: null,
-            errorMessage: JSON.stringify(telegramResult),
-            attempts: 1,
-            processingTimeMs: null,
-            userAgent: request.headers.get('user-agent') || 'unknown',
-            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-          }
-        })
-      } catch {}
-      return NextResponse.json({
-        error: 'Ошибка отправки сообщения в Telegram',
-        details: telegramResult
-      }, { status: 400 })
-    }
-
-    // Логируем успешную отправку
-    try {
-      await prisma.notificationLog.create({
+    // Ставим задачу в очередь на отправку
+    const task = await prisma.notificationQueue.create({
+      data: {
+        type: 'SEND_MESSAGE',
         data: {
-          type: 'manual_send',
           teamId: client.teamId,
           clientId: client.id,
           message,
-          status: 'SUCCESS',
-          telegramMessageId: String(telegramResult.result?.message_id || ''),
-          errorMessage: null,
-          attempts: 1,
-          processingTimeMs: null,
-          userAgent: request.headers.get('user-agent') || 'unknown',
-          ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-        }
-      })
-    } catch {}
+          meta: {
+            userAgent: request.headers.get('user-agent') || 'unknown',
+            ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
+            source: 'admin_manual',
+          }
+        },
+        executeAt: new Date(),
+        status: 'PENDING',
+        attempts: 0,
+        maxAttempts: 3,
+        errorMessage: null,
+      } as any,
+    })
 
     return NextResponse.json({
       success: true,
-      message: 'Сообщение отправлено успешно',
-      telegramMessageId: telegramResult.result.message_id
+      queued: true,
+      queueId: task.id,
+      message: 'Сообщение поставлено в очередь'
     })
 
   } catch (error) {

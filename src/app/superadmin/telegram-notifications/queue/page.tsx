@@ -22,13 +22,15 @@ export default function TelegramQueuePage() {
   const [dateFrom, setDateFrom] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [loading, setLoading] = useState<boolean>(false)
+  const [summaryExtra, setSummaryExtra] = useState<{ last1m: number; perMinute5m: number; limits?: any } | null>(null)
 
   const load = async () => {
     setLoading(true)
     try {
       const sres = await fetch('/api/superadmin/telegram-queue/summary', { cache: 'no-store' })
       const sdata = await sres.json()
-      setSummary(sdata)
+      setSummary({ pending: sdata.pending, processing: sdata.processing, failed: sdata.failed })
+      setSummaryExtra({ last1m: sdata.rate?.last1m || 0, perMinute5m: sdata.rate?.perMinute5m || 0, limits: sdata.limits || null })
 
       const params = new URLSearchParams()
       if (status) params.set('status', status)
@@ -53,6 +55,14 @@ export default function TelegramQueuePage() {
           <div className="px-3 py-2 bg-white border rounded">В ожидании: <b>{summary.pending}</b></div>
           <div className="px-3 py-2 bg-white border rounded">В обработке: <b>{summary.processing}</b></div>
           <div className="px-3 py-2 bg-white border rounded">Ошибки: <b>{summary.failed}</b></div>
+          {summaryExtra && (
+            <div className="px-3 py-2 bg-white border rounded">
+              Скорость: 1м=<b>{summaryExtra.last1m}</b>, ~мин=<b>{summaryExtra.perMinute5m}</b>
+              {summaryExtra.limits && (
+                <span className="ml-2 text-gray-600">лимит {summaryExtra.limits.maxRequestsPerMinute}/мин</span>
+              )}
+            </div>
+          )}
         </div>
       )}
       <div className="bg-white border rounded p-3 mb-4 flex flex-wrap gap-2 items-end">
@@ -78,6 +88,7 @@ export default function TelegramQueuePage() {
           <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
         </div>
         <button onClick={load} className="px-3 py-2 bg-blue-600 text-white rounded text-sm">Применить</button>
+        <BulkActions dateFrom={dateFrom} dateTo={dateTo} />
       </div>
 
       {loading ? <div>Загрузка…</div> : (
@@ -110,6 +121,38 @@ export default function TelegramQueuePage() {
           </table>
         </div>
       )}
+    </div>
+  )
+}
+
+function BulkActions({ dateFrom, dateTo }: { dateFrom: string; dateTo: string }) {
+  const [busy, setBusy] = useState(false)
+  const [minutes, setMinutes] = useState(10)
+  const run = async (payload: any) => {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/superadmin/telegram-queue/bulk', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Ошибка выполнения')
+      alert('Готово')
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Ошибка')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="flex items-end gap-2">
+      <button disabled={busy} onClick={()=>run({ action: 'resendFailed', from: dateFrom, to: dateTo })} className="px-3 py-2 border rounded text-sm">Переотправить FAILED за период</button>
+      <div className="flex items-end gap-1">
+        <div>
+          <label className="block text-xs text-gray-500">минут</label>
+          <input type="number" min={1} value={minutes} onChange={e=>setMinutes(parseInt(e.target.value||'10',10))} className="border rounded px-2 py-1 text-sm w-20" />
+        </div>
+        <button disabled={busy} onClick={()=>run({ action: 'releaseProcessing', minutes })} className="px-3 py-2 border rounded text-sm">Снять зависшие PROCESSING</button>
+      </div>
     </div>
   )
 }

@@ -1,14 +1,35 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+type Reminder = { hoursBefore: number; templateId?: string | null }
+type Template = { id: string; key: string; name: string; content: string; isHtml: boolean }
 
 export default function AdminNotificationsRoot() {
   const [openNotifications, setOpenNotifications] = useState(false)
   const [openBroadcast, setOpenBroadcast] = useState(false)
 
-  // Локальное состояние (пока без API)
+  // Policy
   const [delayAfterBookingSec, setDelayAfterBookingSec] = useState<number>(60)
   const [remindersHours, setRemindersHours] = useState<number[]>([])
+  const [loadingPolicy, setLoadingPolicy] = useState(false)
+  const [savingPolicy, setSavingPolicy] = useState(false)
+  const [policyError, setPolicyError] = useState<string>('')
+
+  // Templates
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [savingTemplate, setSavingTemplate] = useState(false)
+  const [tplKey, setTplKey] = useState('')
+  const [tplName, setTplName] = useState('')
+  const [tplContent, setTplContent] = useState('')
+  const [tplIsHtml, setTplIsHtml] = useState(false)
+  const [templatesError, setTemplatesError] = useState<string>('')
+
+  // Broadcast (заглушка UI)
+  const [broadcastText, setBroadcastText] = useState<string>('')
+  const [broadcastPlannedAt, setBroadcastPlannedAt] = useState<string>('')
+
   const addReminder = () => {
     if (remindersHours.length < 3) setRemindersHours([...remindersHours, 24])
   }
@@ -16,8 +37,125 @@ export default function AdminNotificationsRoot() {
     setRemindersHours(remindersHours.filter((_, i) => i !== idx))
   }
 
-  const [broadcastText, setBroadcastText] = useState<string>('')
-  const [broadcastPlannedAt, setBroadcastPlannedAt] = useState<string>('')
+  function getToken(): string | null {
+    try {
+      return localStorage.getItem('token')
+    } catch {
+      return null
+    }
+  }
+
+  async function safeJson(resp: Response) {
+    try {
+      const text = await resp.text()
+      if (!text) return {}
+      return JSON.parse(text)
+    } catch {
+      return {}
+    }
+  }
+
+  const loadPolicy = async () => {
+    setLoadingPolicy(true)
+    setPolicyError('')
+    try {
+      const token = getToken()
+      const resp = await fetch('/api/admin/notifications/policy', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      const data = await safeJson(resp)
+      if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить политику')
+      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[] }
+      setDelayAfterBookingSec(Number(policy?.delayAfterBookingSeconds ?? 60))
+      setRemindersHours(Array.isArray(policy?.reminders) ? policy.reminders.map(r => Number(r.hoursBefore ?? 24)) : [])
+    } catch (e) {
+      setPolicyError(e instanceof Error ? e.message : 'Ошибка загрузки политики')
+    } finally {
+      setLoadingPolicy(false)
+    }
+  }
+
+  const savePolicy = async () => {
+    setSavingPolicy(true)
+    setPolicyError('')
+    try {
+      const token = getToken()
+      const body = {
+        delayAfterBookingSeconds: Number.isFinite(delayAfterBookingSec) ? Math.max(0, Math.floor(delayAfterBookingSec)) : 60,
+        reminders: remindersHours.slice(0, 3).map(h => ({ hoursBefore: Math.min(72, Math.max(1, Math.floor(h))) })),
+      }
+      const resp = await fetch('/api/admin/notifications/policy', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+        },
+        body: JSON.stringify(body),
+      })
+      const data = await safeJson(resp)
+      if (!resp.ok) throw new Error((data as any).error || 'Не удалось сохранить политику')
+    } catch (e) {
+      setPolicyError(e instanceof Error ? e.message : 'Ошибка сохранения политики')
+    } finally {
+      setSavingPolicy(false)
+    }
+  }
+
+  const loadTemplates = async () => {
+    setLoadingTemplates(true)
+    setTemplatesError('')
+    try {
+      const token = getToken()
+      const resp = await fetch('/api/admin/notifications/templates', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
+      const data = await safeJson(resp)
+      if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить шаблоны')
+      setTemplates(Array.isArray((data as any).templates) ? (data as any).templates : [])
+    } catch (e) {
+      setTemplatesError(e instanceof Error ? e.message : 'Ошибка загрузки шаблонов')
+    } finally {
+      setLoadingTemplates(false)
+    }
+  }
+
+  const upsertTemplate = async () => {
+    setSavingTemplate(true)
+    setTemplatesError('')
+    try {
+      const payload = { key: tplKey.trim(), name: tplName.trim(), content: tplContent, isHtml: !!tplIsHtml }
+      if (!payload.key || !payload.name || !payload.content) {
+        setTemplatesError('Заполните key, name и content')
+        setSavingTemplate(false)
+        return
+      }
+      const resp = await fetch('/api/admin/notifications/templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      })
+      const data = await safeJson(resp)
+      if (!resp.ok) throw new Error((data as any).error || 'Не удалось сохранить шаблон')
+      setTplKey(''); setTplName(''); setTplContent(''); setTplIsHtml(false)
+      await loadTemplates()
+    } catch (e) {
+      setTemplatesError(e instanceof Error ? e.message : 'Ошибка сохранения шаблона')
+    } finally {
+      setSavingTemplate(false)
+    }
+  }
+
+  useEffect(() => {
+    // Автозагрузка при первом раскрытии секции
+    if (openNotifications) {
+      if (!loadingPolicy) loadPolicy()
+      if (!loadingTemplates) loadTemplates()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openNotifications])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -89,14 +227,46 @@ export default function AdminNotificationsRoot() {
                   </div>
                 </div>
 
-                {/* Шаблоны сообщений (заглушка) */}
+                {/* Шаблоны сообщений */}
                 <div className="border rounded-md p-4">
                   <div className="font-medium mb-2">Шаблоны сообщений</div>
-                  <p className="text-sm text-gray-600">Редактирование шаблонов будет добавлено следующим шагом.</p>
+                  {loadingTemplates ? (
+                    <div className="text-sm text-gray-500">Загрузка шаблонов...</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {templatesError && (
+                        <div className="text-sm text-red-600">{templatesError}</div>
+                      )}
+                      {templates.length === 0 && (
+                        <div className="text-sm text-gray-500">Шаблоны отсутствуют</div>
+                      )}
+                      {templates.map(t => (
+                        <div key={t.id} className="p-3 border rounded">
+                          <div className="text-sm font-medium">{t.name} <span className="text-gray-500">({t.key})</span></div>
+                          <div className="text-xs text-gray-500 truncate">{t.content}</div>
+                        </div>
+                      ))}
+                      <div className="pt-2 border-t mt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <input value={tplKey} onChange={e => setTplKey(e.target.value)} placeholder="key" className="border rounded px-3 py-2" />
+                          <input value={tplName} onChange={e => setTplName(e.target.value)} placeholder="Название" className="border rounded px-3 py-2" />
+                        </div>
+                        <textarea value={tplContent} onChange={e => setTplContent(e.target.value)} rows={4} placeholder="Контент (HTML разрешён)" className="w-full border rounded px-3 py-2 mt-2" />
+                        <label className="inline-flex items-center gap-2 text-sm mt-2">
+                          <input type="checkbox" checked={tplIsHtml} onChange={e => setTplIsHtml(e.target.checked)} />
+                          HTML
+                        </label>
+                        <div className="mt-2">
+                          <button type="button" disabled={savingTemplate} onClick={upsertTemplate} className="px-3 py-1.5 bg-gray-800 text-white rounded disabled:opacity-50">Сохранить шаблон</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="pt-2">
-                  <button type="button" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Сохранить (будет подключено к API)</button>
+                <div className="pt-2 space-y-2">
+                  {policyError && <div className="text-sm text-red-600">{policyError}</div>}
+                  <button type="button" disabled={savingPolicy} onClick={savePolicy} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">Сохранить</button>
                 </div>
               </div>
             </div>

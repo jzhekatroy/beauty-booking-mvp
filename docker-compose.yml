@@ -36,6 +36,22 @@ services:
       retries: 3
       start_period: 40s
 
+  # Воркер очереди уведомлений
+  queue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beauty-booking-queue-worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - postgres
+    networks:
+      - beauty_booking_network
+    command: ["node", "scripts/queue-worker.js"]
+
   # Postgres для разработки/прода
   postgres:
     image: postgres:15-alpine

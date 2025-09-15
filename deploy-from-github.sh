@@ -43,6 +43,10 @@ if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
     if curl -f http://localhost:3000/api/superadmin/global-notification-settings > /dev/null 2>&1; then
         echo "✅ Деплой успешно завершен!"
         echo "🌐 Приложение доступно на http://test.2minutes.ru"
+        echo "🚜 Запускаем воркер очереди..."
+        # Запускаем воркер как отдельный процесс (если compose не используется на проде)
+        sudo pkill -f "scripts/queue-worker.js" || true
+        sudo -u beautyapp NODE_ENV=production nohup node scripts/queue-worker.js > /dev/null 2>&1 &
     else
         echo "❌ Эндпоинт глобальных настроек недоступен (non-2xx)"
         exit 1

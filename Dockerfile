@@ -50,6 +50,9 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
+# Копируем скрипты (воркер очереди)
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/queue-worker.js ./scripts/queue-worker.js
+
 # Создаем директорию для базы данных
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 

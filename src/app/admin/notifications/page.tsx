@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type Reminder = { hoursBefore: number; templateId?: string | null }
 type Template = { id: string; key: string; name: string; content: string; isHtml: boolean }
@@ -38,33 +38,28 @@ export default function AdminNotificationsRoot() {
   // Фото для рассылки (опционально)
   const [photoUrl, setPhotoUrl] = useState<string>('')
   const [photoUploading, setPhotoUploading] = useState<boolean>(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-  const fileInputRef = (typeof window !== 'undefined') ? (document.createElement('input')) as HTMLInputElement : null
-  if (fileInputRef && !fileInputRef.type) {
-    // Инициализация один раз
-    fileInputRef.type = 'file'
-    fileInputRef.accept = 'image/jpeg,image/jpg,image/png,image/webp'
-    fileInputRef.onchange = async () => {
-      if (!fileInputRef.files || fileInputRef.files.length === 0) return
-      const file = fileInputRef.files[0]
-      setPhotoUploading(true)
-      setBroadcastErr('')
-      setBroadcastOk('')
-      try {
-        const form = new FormData()
-        form.append('file', file)
-        const resp = await fetch('/api/upload', { method: 'POST', body: form })
-        const data = await safeJson(resp as any)
-        if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить файл')
-        const url = (data as any).url as string
-        setPhotoUrl(url)
-        setBroadcastOk('Фото загружено')
-      } catch (e) {
-        setBroadcastErr(e instanceof Error ? e.message : 'Ошибка загрузки фото')
-      } finally {
-        setPhotoUploading(false)
-        if (fileInputRef) fileInputRef.value = ''
-      }
+  const handlePhotoInputChange: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    setPhotoUploading(true)
+    setBroadcastErr('')
+    setBroadcastOk('')
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const resp = await fetch('/api/upload', { method: 'POST', body: form })
+      const data = await safeJson(resp)
+      if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить файл')
+      const url = (data as any).url as string
+      setPhotoUrl(url)
+      setBroadcastOk('Фото загружено')
+    } catch (e) {
+      setBroadcastErr(e instanceof Error ? e.message : 'Ошибка загрузки фото')
+    } finally {
+      setPhotoUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -393,10 +388,18 @@ export default function AdminNotificationsRoot() {
                 {/* Фото (опционально) */}
                 <div className="border rounded-md p-4">
                   <div className="font-medium mb-2">Фото (опционально)</div>
+                  {/* скрытый input для выбора файла */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handlePhotoInputChange}
+                  />
                   <div className="mt-2 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => fileInputRef?.click()}
+                      onClick={() => fileInputRef.current?.click()}
                       disabled={photoUploading}
                       className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
                     >

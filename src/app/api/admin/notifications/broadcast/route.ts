@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}))
     const message: string = String(body.message || '').trim()
     const photoUrl: string = String(body.photoUrl || '').trim()
-    const caption: string = String(body.caption || '').trim()
+    const caption: string = String(body.caption || body.message || '').trim()
     const scheduledAtRaw: string = String(body.scheduledAt || '')
     const name: string | null = body.name ? String(body.name).trim() : null
 

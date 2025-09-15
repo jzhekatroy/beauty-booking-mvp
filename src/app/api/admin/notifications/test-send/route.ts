@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}))
     const message = String(body.message || '').trim() || 'Тестовая рассылка'
+    const photoUrl = body.photoUrl ? String(body.photoUrl).trim() : ''
     const clientId = body.clientId ? String(body.clientId) : ''
     const usernameRaw = body.username ? String(body.username) : ''
     const username = usernameRaw.replace(/^@+/, '').trim()
@@ -42,22 +43,41 @@ export async function POST(request: NextRequest) {
     const team = await prisma.team.findUnique({ where: { id: user.teamId } })
     if (!team?.telegramBotToken) return NextResponse.json({ error: 'Не настроен Telegram Bot' }, { status: 400 })
 
-    // Ставим задачу в очередь
-    await prisma.notificationQueue.create({
-      data: {
-        type: 'SEND_MESSAGE',
+    // Ставим задачу в очередь (фото или текст)
+    if (photoUrl) {
+      await prisma.notificationQueue.create({
         data: {
-          teamId: user.teamId,
-          clientId: client.id,
-          message,
-          meta: { source: 'manual_test' },
+          type: 'SEND_PHOTO',
+          data: {
+            teamId: user.teamId,
+            clientId: client.id,
+            photoUrl,
+            caption: message || undefined,
+            meta: { source: 'manual_test' },
+          },
+          executeAt: new Date(),
+          status: 'PENDING',
+          attempts: 0,
+          maxAttempts: 3,
         },
-        executeAt: new Date(),
-        status: 'PENDING',
-        attempts: 0,
-        maxAttempts: 3,
-      },
-    })
+      })
+    } else {
+      await prisma.notificationQueue.create({
+        data: {
+          type: 'SEND_MESSAGE',
+          data: {
+            teamId: user.teamId,
+            clientId: client.id,
+            message,
+            meta: { source: 'manual_test' },
+          },
+          executeAt: new Date(),
+          status: 'PENDING',
+          attempts: 0,
+          maxAttempts: 3,
+        },
+      })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -37,6 +37,36 @@ export default function AdminNotificationsRoot() {
   const [testUsername, setTestUsername] = useState<string>('')
   // Фото для рассылки (опционально)
   const [photoUrl, setPhotoUrl] = useState<string>('')
+  const [photoUploading, setPhotoUploading] = useState<boolean>(false)
+
+  const fileInputRef = (typeof window !== 'undefined') ? (document.createElement('input')) as HTMLInputElement : null
+  if (fileInputRef && !fileInputRef.type) {
+    // Инициализация один раз
+    fileInputRef.type = 'file'
+    fileInputRef.accept = 'image/jpeg,image/jpg,image/png,image/webp'
+    fileInputRef.onchange = async () => {
+      if (!fileInputRef.files || fileInputRef.files.length === 0) return
+      const file = fileInputRef.files[0]
+      setPhotoUploading(true)
+      setBroadcastErr('')
+      setBroadcastOk('')
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        const resp = await fetch('/api/upload', { method: 'POST', body: form })
+        const data = await safeJson(resp as any)
+        if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить файл')
+        const url = (data as any).url as string
+        setPhotoUrl(url)
+        setBroadcastOk('Фото загружено')
+      } catch (e) {
+        setBroadcastErr(e instanceof Error ? e.message : 'Ошибка загрузки фото')
+      } finally {
+        setPhotoUploading(false)
+        if (fileInputRef) fileInputRef.value = ''
+      }
+    }
+  }
 
   const addReminder = () => {
     if (remindersHours.length < 3) setRemindersHours([...remindersHours, 24])
@@ -371,6 +401,25 @@ export default function AdminNotificationsRoot() {
                     placeholder="https://.../image.jpg"
                     className="w-full border rounded px-3 py-2"
                   />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef?.click()}
+                      disabled={photoUploading}
+                      className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
+                    >
+                      {photoUploading ? 'Загрузка...' : 'Загрузить фото с ПК'}
+                    </button>
+                    {photoUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setPhotoUrl('')}
+                        className="px-3 py-1.5 text-sm border rounded"
+                      >
+                        Очистить
+                      </button>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-500 mt-1">
                     Требуется публичный HTTPS‑URL без авторизации. Рекомендованные форматы: jpg, jpeg, png, webp (до ~10 МБ).
                     Можно загрузить в облако/Диск и поделиться прямой ссылкой на файл (не на страницу предпросмотра).
@@ -438,7 +487,7 @@ export default function AdminNotificationsRoot() {
                             'Content-Type': 'application/json',
                             ...(token ? { Authorization: `Bearer ${token}` } : {}),
                           },
-                          body: JSON.stringify({ message: broadcastText || 'Тестовая рассылка', username: testUsername }),
+                          body: JSON.stringify({ message: broadcastText || 'Тестовая рассылка', username: testUsername, photoUrl: photoUrl || undefined }),
                         })
                         const data = await safeJson(resp)
                         if (!resp.ok) throw new Error((data as any).error || 'Не удалось отправить тест')

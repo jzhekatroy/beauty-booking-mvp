@@ -33,6 +33,8 @@ export default function AdminNotificationsRoot() {
   const [broadcastErr, setBroadcastErr] = useState<string>('')
   const [broadcastOk, setBroadcastOk] = useState<string>('')
   const [creatingBroadcast, setCreatingBroadcast] = useState(false)
+  // Тест-отправка по Telegram никнейму
+  const [testUsername, setTestUsername] = useState<string>('')
 
   const addReminder = () => {
     if (remindersHours.length < 3) setRemindersHours([...remindersHours, 24])
@@ -160,6 +162,8 @@ export default function AdminNotificationsRoot() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openNotifications])
+
+  // Клиенты не загружаем — тест идёт по введённому никнейму
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -345,6 +349,10 @@ export default function AdminNotificationsRoot() {
                   <button
                     type="button"
                     onClick={async () => {
+                      if (!testUsername.trim()) {
+                        setBroadcastErr('Введите Telegram ник (@username)')
+                        return
+                      }
                       setBroadcastErr(''); setBroadcastOk('')
                       try {
                         const token = getToken()
@@ -354,7 +362,7 @@ export default function AdminNotificationsRoot() {
                             'Content-Type': 'application/json',
                             ...(token ? { Authorization: `Bearer ${token}` } : {}),
                           },
-                          body: JSON.stringify({ message: broadcastText || 'Тестовая рассылка' }),
+                          body: JSON.stringify({ message: broadcastText || 'Тестовая рассылка', username: testUsername }),
                         })
                         const data = await safeJson(resp)
                         if (!resp.ok) throw new Error((data as any).error || 'Не удалось отправить тест')
@@ -367,6 +375,12 @@ export default function AdminNotificationsRoot() {
                   >
                     Тест на себя
                   </button>
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-sm text-gray-700 mb-1">Или введите Telegram ник (@username)</label>
+                  <input value={testUsername} onChange={e => setTestUsername(e.target.value)} placeholder="@username" className="border rounded px-3 py-2 min-w-[240px]" />
+                  <div className="text-xs text-gray-500 mt-1">Если указан ник, можно не выбирать клиента</div>
                 </div>
 
                 {(broadcastErr || broadcastOk) && (

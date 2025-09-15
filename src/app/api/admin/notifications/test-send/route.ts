@@ -21,14 +21,24 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}))
     const message = String(body.message || '').trim() || 'Тестовая рассылка'
-    const clientId = String(body.clientId || '') || null
+    const clientId = body.clientId ? String(body.clientId) : ''
+    const usernameRaw = body.username ? String(body.username) : ''
+    const username = usernameRaw.replace(/^@+/, '').trim()
 
-    // Если не указан clientId, берём первого клиента команды, у кого есть telegramId
-    const client = clientId
-      ? await prisma.client.findFirst({ where: { id: clientId, teamId: user.teamId, telegramId: { not: null } } })
-      : await prisma.client.findFirst({ where: { teamId: user.teamId, telegramId: { not: null } }, orderBy: { createdAt: 'asc' } })
+    let client = null as null | { id: string }
+    if (clientId) {
+      client = await prisma.client.findFirst({ where: { id: clientId, teamId: user.teamId, telegramId: { not: null } }, select: { id: true } })
+    } else if (username) {
+      client = await prisma.client.findFirst({
+        where: { teamId: user.teamId, telegramUsername: { equals: username, mode: 'insensitive' }, telegramId: { not: null } },
+        select: { id: true },
+      })
+    } else {
+      // Фолбэк: первый клиент с telegramId (как раньше)
+      client = await prisma.client.findFirst({ where: { teamId: user.teamId, telegramId: { not: null } }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+    }
 
-    if (!client) return NextResponse.json({ error: 'Нет клиентов с Telegram ID' }, { status: 400 })
+    if (!client) return NextResponse.json({ error: 'Клиент для теста не найден (нет telegramId/username)' }, { status: 400 })
     const team = await prisma.team.findUnique({ where: { id: user.teamId } })
     if (!team?.telegramBotToken) return NextResponse.json({ error: 'Не настроен Telegram Bot' }, { status: 400 })
 

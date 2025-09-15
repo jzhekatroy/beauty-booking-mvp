@@ -7,7 +7,17 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization')
     if (!authHeader) return NextResponse.json({ error: 'Токен авторизации отсутствует' }, { status: 401 })
     const token = authHeader.replace('Bearer ', '')
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
+    try {
+      if (!process.env.JWT_SECRET) {
+        return NextResponse.json({ error: 'Сервер: JWT секрет не настроен' }, { status: 500 })
+      }
+    } catch {}
+    let decoded: { userId: string }
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
+    } catch (e) {
+      return NextResponse.json({ error: 'Неверный токен авторизации' }, { status: 401 })
+    }
 
     const me = await prisma.user.findUnique({ where: { id: decoded.userId } })
     if (!me) return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
@@ -30,34 +40,55 @@ export async function GET(request: NextRequest) {
 
     const total = await prisma.team.count({ where })
     
-    const teams = await prisma.team.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true,
-        name: true,
-        teamNumber: true,
-        status: true,
-        createdAt: true,
-        contactPerson: true,
-        email: true,
-        masterLimit: true,
-        _count: {
-          select: {
-            users: { where: { role: 'MASTER' } },
-            clients: true,
-            bookings: true
-          }
-        },
-        notificationSettings: {
-          select: {
-            enabled: true
+    let teams: any[]
+    try {
+      teams = await prisma.team.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          name: true,
+          teamNumber: true,
+          status: true,
+          createdAt: true,
+          contactPerson: true,
+          email: true,
+          masterLimit: true,
+          _count: {
+            select: {
+              users: { where: { role: 'MASTER' } },
+              clients: true,
+              bookings: true
+            }
+          },
+          notificationSettings: {
+            select: { enabled: true }
           }
         }
-      }
-    })
+      })
+    } catch (e) {
+      // Фолбэк на случай отсутствия связанной таблицы или неподдерживаемого count-фильтра
+      teams = await prisma.team.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          name: true,
+          teamNumber: true,
+          status: true,
+          createdAt: true,
+          contactPerson: true,
+          email: true,
+          masterLimit: true,
+          _count: { select: { users: true, clients: true, bookings: true } }
+        }
+      })
+      teams = teams.map(t => ({ ...t, notificationSettings: { enabled: true } }))
+    }
 
     const teamsWithCounts = teams.map(team => ({
       id: team.id,

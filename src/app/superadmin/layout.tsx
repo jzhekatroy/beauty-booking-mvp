@@ -81,7 +81,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
               <Link href="/superadmin/error-logs" className="block px-3 py-2 rounded hover:bg-gray-50 text-gray-700">🚨 Логи ошибок</Link>
             </li>
             <li>
-              <Link href="/superadmin/global-notification-settings" className="block px-3 py-2 rounded hover:bg-gray-50 text-gray-700">⚙️ Глобальные настройки уведомлений</Link>
+              <Link href="/superadmin/telegram-notifications" className="block px-3 py-2 rounded hover:bg-gray-50 text-gray-700">✉️ Telegram уведомления</Link>
             </li>
             <li>
               <Link href="/superadmin/notifications/settings" className="block px-3 py-2 rounded hover:bg-gray-50 text-gray-700">🔔 Настройки команд</Link>

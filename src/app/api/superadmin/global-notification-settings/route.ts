@@ -54,54 +54,58 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const {
-      maxRequestsPerMinute,
-      requestDelayMs,
-      maxRetryAttempts,
-      retryDelayMs,
-      exponentialBackoff,
-      failureThreshold,
-      recoveryTimeoutMs,
-      enabled
-    } = body
+    const toNumber = (v: any): number | undefined => {
+      if (v === null || v === undefined) return undefined
+      const n = typeof v === 'string' ? parseInt(v, 10) : Number(v)
+      return Number.isFinite(n) ? n : undefined
+    }
+
+    const numMaxRequestsPerMinute = toNumber(body.maxRequestsPerMinute)
+    const numRequestDelayMs = toNumber(body.requestDelayMs)
+    const numMaxRetryAttempts = toNumber(body.maxRetryAttempts)
+    const numRetryDelayMs = toNumber(body.retryDelayMs)
+    const numFailureThreshold = toNumber(body.failureThreshold)
+    const numRecoveryTimeoutMs = toNumber(body.recoveryTimeoutMs)
+    const boolExponentialBackoff = typeof body.exponentialBackoff === 'boolean' ? body.exponentialBackoff : undefined
+    const boolEnabled = typeof body.enabled === 'boolean' ? body.enabled : undefined
 
     // Валидация
-    if (maxRequestsPerMinute && (maxRequestsPerMinute < 1 || maxRequestsPerMinute > 30)) {
+    if (numMaxRequestsPerMinute !== undefined && (numMaxRequestsPerMinute < 1 || numMaxRequestsPerMinute > 30)) {
       return NextResponse.json(
         { error: 'maxRequestsPerMinute must be between 1 and 30' },
         { status: 400 }
       )
     }
 
-    if (requestDelayMs && (requestDelayMs < 100 || requestDelayMs > 10000)) {
+    if (numRequestDelayMs !== undefined && (numRequestDelayMs < 100 || numRequestDelayMs > 10000)) {
       return NextResponse.json(
         { error: 'requestDelayMs must be between 100 and 10000' },
         { status: 400 }
       )
     }
 
-    if (maxRetryAttempts && (maxRetryAttempts < 1 || maxRetryAttempts > 10)) {
+    if (numMaxRetryAttempts !== undefined && (numMaxRetryAttempts < 1 || numMaxRetryAttempts > 10)) {
       return NextResponse.json(
         { error: 'maxRetryAttempts must be between 1 and 10' },
         { status: 400 }
       )
     }
 
-    if (retryDelayMs && (retryDelayMs < 1000 || retryDelayMs > 30000)) {
+    if (numRetryDelayMs !== undefined && (numRetryDelayMs < 1000 || numRetryDelayMs > 30000)) {
       return NextResponse.json(
         { error: 'retryDelayMs must be between 1000 and 30000' },
         { status: 400 }
       )
     }
 
-    if (failureThreshold && (failureThreshold < 1 || failureThreshold > 20)) {
+    if (numFailureThreshold !== undefined && (numFailureThreshold < 1 || numFailureThreshold > 20)) {
       return NextResponse.json(
         { error: 'failureThreshold must be between 1 and 20' },
         { status: 400 }
       )
     }
 
-    if (recoveryTimeoutMs && (recoveryTimeoutMs < 10000 || recoveryTimeoutMs > 300000)) {
+    if (numRecoveryTimeoutMs !== undefined && (numRecoveryTimeoutMs < 10000 || numRecoveryTimeoutMs > 300000)) {
       return NextResponse.json(
         { error: 'recoveryTimeoutMs must be between 10000 and 300000' },
         { status: 400 }
@@ -115,27 +119,27 @@ export async function PUT(request: NextRequest) {
       settings = await prisma.globalNotificationSettings.update({
         where: { id: settings.id },
         data: {
-          maxRequestsPerMinute: maxRequestsPerMinute !== undefined ? maxRequestsPerMinute : settings.maxRequestsPerMinute,
-          requestDelayMs: requestDelayMs !== undefined ? requestDelayMs : settings.requestDelayMs,
-          maxRetryAttempts: maxRetryAttempts !== undefined ? maxRetryAttempts : settings.maxRetryAttempts,
-          retryDelayMs: retryDelayMs !== undefined ? retryDelayMs : settings.retryDelayMs,
-          exponentialBackoff: exponentialBackoff !== undefined ? exponentialBackoff : settings.exponentialBackoff,
-          failureThreshold: failureThreshold !== undefined ? failureThreshold : settings.failureThreshold,
-          recoveryTimeoutMs: recoveryTimeoutMs !== undefined ? recoveryTimeoutMs : settings.recoveryTimeoutMs,
-          enabled: enabled !== undefined ? enabled : settings.enabled
+          maxRequestsPerMinute: numMaxRequestsPerMinute ?? settings.maxRequestsPerMinute,
+          requestDelayMs: numRequestDelayMs ?? settings.requestDelayMs,
+          maxRetryAttempts: numMaxRetryAttempts ?? settings.maxRetryAttempts,
+          retryDelayMs: numRetryDelayMs ?? settings.retryDelayMs,
+          exponentialBackoff: boolExponentialBackoff ?? settings.exponentialBackoff,
+          failureThreshold: numFailureThreshold ?? settings.failureThreshold,
+          recoveryTimeoutMs: numRecoveryTimeoutMs ?? settings.recoveryTimeoutMs,
+          enabled: boolEnabled ?? settings.enabled
         }
       })
     } else {
       settings = await prisma.globalNotificationSettings.create({
         data: {
-          maxRequestsPerMinute: maxRequestsPerMinute || 25,
-          requestDelayMs: requestDelayMs || 2000,
-          maxRetryAttempts: maxRetryAttempts || 3,
-          retryDelayMs: retryDelayMs || 5000,
-          exponentialBackoff: exponentialBackoff !== undefined ? exponentialBackoff : true,
-          failureThreshold: failureThreshold || 5,
-          recoveryTimeoutMs: recoveryTimeoutMs || 60000,
-          enabled: enabled !== undefined ? enabled : true
+          maxRequestsPerMinute: numMaxRequestsPerMinute ?? 25,
+          requestDelayMs: numRequestDelayMs ?? 2000,
+          maxRetryAttempts: numMaxRetryAttempts ?? 3,
+          retryDelayMs: numRetryDelayMs ?? 5000,
+          exponentialBackoff: boolExponentialBackoff ?? true,
+          failureThreshold: numFailureThreshold ?? 5,
+          recoveryTimeoutMs: numRecoveryTimeoutMs ?? 60000,
+          enabled: boolEnabled ?? true
         }
       })
     }

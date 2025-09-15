@@ -62,10 +62,25 @@ async function handleSendMessage(task) {
   if (!client.telegramId) throw new Error('Client telegramId missing');
   if (!client.team?.telegramBotToken) throw new Error('Team bot token missing');
 
+  // Templating of variables
+  const first = (client.firstName || client.telegramFirstName || '').trim();
+  const last = (client.lastName || client.telegramLastName || '').trim();
+  const username = client.telegramUsername ? `@${client.telegramUsername}` : '';
+  const clientName = (first || last) ? `${first} ${last}`.trim() : (username || 'клиент');
+  const teamName = client.team?.name || 'Салон';
+  let finalText = String(message);
+  const replacements = {
+    '{client_name}': clientName,
+    '{client_first_name}': first || clientName,
+    '{client_last_name}': last || '',
+    '{team_name}': teamName,
+  };
+  for (const [key, val] of Object.entries(replacements)) finalText = finalText.split(key).join(val);
+
   const { ok, body } = await sendTelegramMessageViaBot(
     client.team.telegramBotToken,
     client.telegramId,
-    message
+    finalText
   );
 
   await prisma.notificationLog.create({
@@ -73,7 +88,7 @@ async function handleSendMessage(task) {
       type: meta?.source === 'broadcast' ? 'broadcast_send' : 'queue_send',
       teamId: client.teamId,
       clientId: client.id,
-      message,
+      message: finalText,
       status: ok ? 'SUCCESS' : 'FAILED',
       telegramMessageId: ok ? String(body?.result?.message_id || '') : null,
       errorMessage: ok ? null : JSON.stringify(body),

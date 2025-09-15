@@ -165,6 +165,21 @@ export default function AdminNotificationsRoot() {
 
   // Клиенты не загружаем — тест идёт по введённому никнейму
 
+  // Сохраняем введённый ник в localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('notifications_test_username')
+      if (saved) setTestUsername(saved)
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('notifications_test_username', testUsername)
+    } catch {}
+  }, [testUsername])
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -293,7 +308,33 @@ export default function AdminNotificationsRoot() {
           </button>
           {openBroadcast && (
             <div className="px-6 pb-6">
-              <p className="text-gray-600 mb-4">Массовые сообщения без сегментов. Прогресс и экспорт ошибок.</p>
+              <div className="text-gray-600 mb-4">
+                <div className="font-medium mb-1">Поддерживаемые переменные в тексте сообщения:</div>
+                <ul className="list-disc pl-5 space-y-1 text-sm">
+                  <li><span className="text-gray-700">{`{client_name}`}</span> — имя клиента</li>
+                  <li><span className="text-gray-700">{`{client_first_name}`}</span> — имя</li>
+                  <li><span className="text-gray-700">{`{client_last_name}`}</span> — фамилия</li>
+                  <li><span className="text-gray-700">{`{team_name}`}</span> — название салона</li>
+                  <li><span className="text-gray-700">{`{booking_date}`}</span> — дата визита (ДД.ММ.ГГГГ)</li>
+                  <li><span className="text-gray-700">{`{booking_time}`}</span> — время визита (ЧЧ:ММ)</li>
+                  <li><span className="text-gray-700">{`{service_list}`}</span> — список услуг</li>
+                  <li><span className="text-gray-700">{`{booking_link}`}</span> — ссылка на запись/подтверждение</li>
+                  <li><span className="text-gray-700">{`{cancel_link}`}</span> — ссылка на отмену</li>
+                </ul>
+
+                <div className="mt-3">
+                  <div className="text-sm font-medium mb-1">Пример сообщения:</div>
+                  <div className="bg-gray-50 border rounded p-3 text-sm space-y-1">
+                    <div>✨ {`{team_name}`} приглашает вас!</div>
+                    <div className="mt-1">{`{client_name}`}, привет! 👋</div>
+                    <div>Мы рады сообщить, что у нас открылся новый салон 💇‍♀️💅</div>
+                    <div>Для вас, {`{client_first_name}`}, подготовили подарки и скидки до 30% 🎁</div>
+                    <div>Приходите на открытие — будет кофе, бьюти-розыгрыш и приятные сюрпризы ☕️🎉</div>
+                    <div>Записывайтесь заранее, места быстро заканчиваются 😉</div>
+                    <div className="pt-2">С любовью, команда {`{team_name}`} ❤️</div>
+                  </div>
+                </div>
+              </div>
 
               <div className="space-y-6">
                 <div className="border rounded-md p-4">

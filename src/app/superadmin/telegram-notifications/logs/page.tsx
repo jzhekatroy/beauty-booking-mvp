@@ -7,6 +7,7 @@ interface LogItem {
   teamId: string
   teamName?: string
   clientId?: string
+  clientName?: string
   message: string
   status: 'SUCCESS' | 'FAILED'
   telegramMessageId?: string | null
@@ -88,6 +89,7 @@ export default function TelegramSendLogsPage() {
               <tr>
                 <th className="px-3 py-2 text-left">Время</th>
                 <th className="px-3 py-2 text-left">Команда</th>
+                <th className="px-3 py-2 text-left">Клиент</th>
                 <th className="px-3 py-2 text-left">Сообщение</th>
                 <th className="px-3 py-2 text-left">Статус</th>
                 <th className="px-3 py-2 text-left">Попытки</th>
@@ -99,6 +101,7 @@ export default function TelegramSendLogsPage() {
                 <tr key={l.id}>
                   <td className="px-3 py-2 whitespace-nowrap">{new Date(l.createdAt).toLocaleString('ru-RU')}</td>
                   <td className="px-3 py-2">{l.teamName || l.teamId}</td>
+                  <td className="px-3 py-2">{l.clientName || l.clientId}</td>
                   <td className="px-3 py-2 max-w-[480px] truncate" title={l.message}>{l.message}</td>
                   <td className="px-3 py-2">
                     <span className={`px-2 py-1 rounded text-xs ${l.status === 'SUCCESS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{l.status}</span>

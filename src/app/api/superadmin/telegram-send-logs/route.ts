@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: 'desc' },
       take: 500,
-      include: { team: { select: { name: true } } }
+      include: {
+        team: { select: { name: true } },
+        client: { select: { firstName: true, lastName: true, telegramUsername: true } }
+      }
     })
 
     const mapped = logs.map(l => ({
@@ -56,6 +59,12 @@ export async function GET(request: NextRequest) {
       teamId: l.teamId,
       teamName: (l as any).team?.name,
       clientId: l.clientId,
+      clientName: (() => {
+        const first = (l as any).client?.firstName || ''
+        const last = (l as any).client?.lastName || ''
+        const username = (l as any).client?.telegramUsername ? `@${(l as any).client?.telegramUsername}` : ''
+        return (first || last) ? `${first} ${last}`.trim() : (username || l.clientId)
+      })(),
       message: l.message,
       status: l.status as 'SUCCESS' | 'FAILED',
       telegramMessageId: l.telegramMessageId,

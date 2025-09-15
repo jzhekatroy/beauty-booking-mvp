@@ -12,6 +12,13 @@ echo "📥 Получаем последние изменения из GitHub...
 git fetch origin
 git reset --hard origin/main
 
+# Загружаем переменные окружения из .env (если есть)
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
+
 echo "📦 Устанавливаем зависимости..."
 npm ci --production=false
 
@@ -32,7 +39,7 @@ sudo pkill -f "npm start" || true
 sleep 2
 
 echo "🔄 Запускаем новую версию..."
-sudo -u beautyapp NODE_ENV=production PORT=3000 nohup npm start > /dev/null 2>&1 &
+sudo -u beautyapp NODE_ENV=production PORT=3000 DATABASE_URL="$DATABASE_URL" nohup npm start > /dev/null 2>&1 &
 
 echo "⏳ Ждем запуска приложения..."
 sleep 5
@@ -46,7 +53,7 @@ if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
         echo "🚜 Запускаем воркер очереди..."
         # Запускаем воркер как отдельный процесс (если compose не используется на проде)
         sudo pkill -f "scripts/queue-worker.js" || true
-        sudo -u beautyapp NODE_ENV=production nohup node scripts/queue-worker.js > /dev/null 2>&1 &
+        sudo -u beautyapp NODE_ENV=production DATABASE_URL="$DATABASE_URL" nohup node scripts/queue-worker.js > /dev/null 2>&1 &
     else
         echo "❌ Эндпоинт глобальных настроек недоступен (non-2xx)"
         exit 1

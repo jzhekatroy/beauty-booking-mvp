@@ -338,13 +338,11 @@ export default function BookingWidget() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <VersionToggle />
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00acf4] mx-auto mb-4"></div>
             <p className="text-gray-600">Загрузка данных...</p>
             <p className="text-sm text-gray-500 mt-2">Slug: {slug}</p>
-            <p className="text-sm text-gray-500">ShowLovable: {showLovableVersion ? 'true' : 'false'}</p>
           </div>
         </div>
       </div>
@@ -354,7 +352,6 @@ export default function BookingWidget() {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-red-100 to-red-200">
-        <VersionToggle />
         <div className="flex items-center justify-center min-h-screen">
           <Card className="p-8 text-center shadow-lg">
             <h2 className="text-2xl font-bold text-red-700 mb-4">Ошибка</h2>

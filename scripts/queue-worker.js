@@ -13,6 +13,18 @@ const prisma = new PrismaClient();
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
+function toAbsoluteUrl(urlOrPath) {
+  try {
+    if (!urlOrPath) return urlOrPath;
+    if (/^https?:\/\//i.test(urlOrPath)) return urlOrPath;
+    const base = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const path = String(urlOrPath).startsWith('/') ? urlOrPath : `/${urlOrPath}`;
+    return `${base}${path}`;
+  } catch {
+    return urlOrPath;
+  }
+}
+
 async function getLimits() {
   const g = await prisma.globalNotificationSettings.findFirst();
   return {
@@ -141,10 +153,11 @@ async function handleSendPhoto(task) {
   for (const [k, v] of Object.entries(replacements)) finalCaption = finalCaption.split(k).join(v);
 
   // Send photo
+  const photo = toAbsoluteUrl(photoUrl);
   const resp = await fetchFn(`https://api.telegram.org/bot${client.team.telegramBotToken}/sendPhoto`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: String(client.telegramId), photo: photoUrl, caption: finalCaption, parse_mode: 'HTML' }),
+    body: JSON.stringify({ chat_id: String(client.telegramId), photo, caption: finalCaption, parse_mode: 'HTML' }),
     timeout: 20000,
   });
   const body = await resp.json().catch(() => ({}));

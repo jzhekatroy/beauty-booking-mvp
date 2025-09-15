@@ -35,6 +35,8 @@ export default function AdminNotificationsRoot() {
   const [creatingBroadcast, setCreatingBroadcast] = useState(false)
   // Тест-отправка по Telegram никнейму
   const [testUsername, setTestUsername] = useState<string>('')
+  // Фото для рассылки (опционально)
+  const [photoUrl, setPhotoUrl] = useState<string>('')
 
   const addReminder = () => {
     if (remindersHours.length < 3) setRemindersHours([...remindersHours, 24])
@@ -358,6 +360,31 @@ export default function AdminNotificationsRoot() {
                   />
                 </div>
 
+                {/* Фото (опционально) */}
+                <div className="border rounded-md p-4">
+                  <div className="font-medium mb-2">Фото (опционально)</div>
+                  <label className="block text-sm text-gray-700 mb-1">Ссылка на фото (URL)</label>
+                  <input
+                    type="text"
+                    value={photoUrl}
+                    onChange={(e) => setPhotoUrl(e.target.value)}
+                    placeholder="https://.../image.jpg"
+                    className="w-full border rounded px-3 py-2"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">
+                    Требуется публичный HTTPS‑URL без авторизации. Рекомендованные форматы: jpg, jpeg, png, webp (до ~10 МБ).
+                    Можно загрузить в облако/Диск и поделиться прямой ссылкой на файл (не на страницу предпросмотра).
+                  </div>
+                  {photoUrl && (
+                    <div className="mt-3">
+                      <div className="text-xs text-gray-500 mb-1">Превью:</div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={photoUrl} alt="preview" className="max-h-40 rounded border" onError={() => setBroadcastErr('Не удалось загрузить превью по указанному URL')} />
+                    </div>
+                  )}
+
+                </div>
+
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -366,13 +393,21 @@ export default function AdminNotificationsRoot() {
                       setBroadcastErr(''); setBroadcastOk(''); setCreatingBroadcast(true)
                       try {
                         const token = getToken()
+                        // Валидация: либо текст, либо фото
+                        if (!broadcastText.trim() && !photoUrl.trim()) {
+                          throw new Error('Укажите текст сообщения или ссылку на фото')
+                        }
                         const resp = await fetch('/api/admin/notifications/broadcast', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
                             ...(token ? { Authorization: `Bearer ${token}` } : {}),
                           },
-                          body: JSON.stringify({ message: broadcastText, scheduledAt: broadcastPlannedAt || undefined }),
+                          body: JSON.stringify({
+                            message: broadcastText || undefined,
+                            scheduledAt: broadcastPlannedAt || undefined,
+                            photoUrl: photoUrl || undefined,
+                          }),
                         })
                         const data = await safeJson(resp)
                         if (!resp.ok) throw new Error((data as any).error || 'Не удалось создать рассылку')

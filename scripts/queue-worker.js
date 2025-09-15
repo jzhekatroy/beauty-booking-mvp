@@ -112,6 +112,70 @@ async function handleSendMessage(task) {
   return ok;
 }
 
+async function handleSendPhoto(task) {
+  const data = task.data || {};
+  const { teamId, clientId, photoUrl, caption, meta } = data;
+  if (!teamId || !clientId || !photoUrl) throw new Error('Bad photo task payload');
+
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    include: { team: true },
+  });
+  if (!client) throw new Error('Client not found');
+  if (!client.telegramId) throw new Error('Client telegramId missing');
+  if (!client.team?.telegramBotToken) throw new Error('Team bot token missing');
+
+  // Templating for caption
+  const first = (client.firstName || client.telegramFirstName || '').trim();
+  const last = (client.lastName || client.telegramLastName || '').trim();
+  const username = client.telegramUsername ? `@${client.telegramUsername}` : '';
+  const clientName = (first || last) ? `${first} ${last}`.trim() : (username || 'клиент');
+  const teamName = client.team?.name || 'Салон';
+  let finalCaption = String(caption || '');
+  const replacements = {
+    '{client_name}': clientName,
+    '{client_first_name}': first || clientName,
+    '{client_last_name}': last || '',
+    '{team_name}': teamName,
+  };
+  for (const [k, v] of Object.entries(replacements)) finalCaption = finalCaption.split(k).join(v);
+
+  // Send photo
+  const resp = await fetchFn(`https://api.telegram.org/bot${client.team.telegramBotToken}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: String(client.telegramId), photo: photoUrl, caption: finalCaption, parse_mode: 'HTML' }),
+    timeout: 20000,
+  });
+  const body = await resp.json().catch(() => ({}));
+  const ok = resp.ok && body?.ok !== false;
+
+  await prisma.notificationLog.create({
+    data: {
+      type: meta?.source === 'broadcast' ? 'broadcast_send' : 'queue_send',
+      teamId: client.teamId,
+      clientId: client.id,
+      message: finalCaption || '[photo]',
+      status: ok ? 'SUCCESS' : 'FAILED',
+      telegramMessageId: ok ? String(body?.result?.message_id || '') : null,
+      errorMessage: ok ? null : JSON.stringify(body),
+      attempts: task.attempts + 1,
+      userAgent: meta?.userAgent || 'worker',
+      ipAddress: meta?.ipAddress || null,
+      campaignId: meta?.campaignId || null,
+    },
+  });
+
+  if (meta?.campaignId) {
+    await prisma.broadcastCampaign.update({
+      where: { id: meta.campaignId },
+      data: ok ? { progressSent: { increment: 1 } } : { progressFailed: { increment: 1 } },
+    }).catch(() => {});
+  }
+
+  return ok;
+}
+
 async function handleResendMessage(task) {
   const data = task.data || {};
   const { logId } = data;
@@ -164,6 +228,7 @@ async function processOnce() {
   let ok = false;
   try {
     if (task.type === 'SEND_MESSAGE') ok = await handleSendMessage(task);
+    else if (task.type === 'SEND_PHOTO') ok = await handleSendPhoto(task);
     else if (task.type === 'RESEND_MESSAGE') ok = await handleResendMessage(task);
     else throw new Error(`Unknown task type: ${task.type}`);
   } catch (e) {

@@ -66,11 +66,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}))
     const message: string = String(body.message || '').trim()
+    const photoUrl: string = String(body.photoUrl || '').trim()
+    const caption: string = String(body.caption || '').trim()
     const scheduledAtRaw: string = String(body.scheduledAt || '')
     const name: string | null = body.name ? String(body.name).trim() : null
 
-    if (!message) {
-      return NextResponse.json({ error: 'Текст сообщения обязателен' }, { status: 400 })
+    if (!message && !photoUrl) {
+      return NextResponse.json({ error: 'Укажите текст сообщения или ссылку на фото' }, { status: 400 })
     }
 
     // Рассчитываем executeAt с учётом часового пояса команды
@@ -114,8 +116,14 @@ export async function POST(request: NextRequest) {
     // Ставим задачи в очередь (через createMany)
     const executeAt = scheduledAt ?? new Date()
     const tasks = clients.map((c) => ({
-      type: 'SEND_MESSAGE',
-      data: {
+      type: photoUrl ? 'SEND_PHOTO' : 'SEND_MESSAGE',
+      data: photoUrl ? {
+        teamId: user.teamId,
+        clientId: c.id,
+        photoUrl,
+        caption,
+        meta: { source: 'broadcast', campaignId: campaign.id },
+      } : {
         teamId: user.teamId,
         clientId: c.id,
         message,

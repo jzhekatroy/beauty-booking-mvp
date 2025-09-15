@@ -29,6 +29,10 @@ export default function AdminNotificationsRoot() {
   // Broadcast (заглушка UI)
   const [broadcastText, setBroadcastText] = useState<string>('')
   const [broadcastPlannedAt, setBroadcastPlannedAt] = useState<string>('')
+  const [broadcastMsg, setBroadcastMsg] = useState<string>('')
+  const [broadcastErr, setBroadcastErr] = useState<string>('')
+  const [broadcastOk, setBroadcastOk] = useState<string>('')
+  const [creatingBroadcast, setCreatingBroadcast] = useState(false)
 
   const addReminder = () => {
     if (remindersHours.length < 3) setRemindersHours([...remindersHours, 24])
@@ -310,9 +314,43 @@ export default function AdminNotificationsRoot() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button type="button" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Создать рассылку (будет API)</button>
+                  <button
+                    type="button"
+                    disabled={creatingBroadcast}
+                    onClick={async () => {
+                      setBroadcastErr(''); setBroadcastOk(''); setCreatingBroadcast(true)
+                      try {
+                        const token = getToken()
+                        const resp = await fetch('/api/admin/notifications/broadcast', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                          },
+                          body: JSON.stringify({ message: broadcastText, scheduledAt: broadcastPlannedAt || undefined }),
+                        })
+                        const data = await safeJson(resp)
+                        if (!resp.ok) throw new Error((data as any).error || 'Не удалось создать рассылку')
+                        setBroadcastOk(`Кампания создана. Всего получателей: ${(data as any).total}`)
+                      } catch (e) {
+                        setBroadcastErr(e instanceof Error ? e.message : 'Ошибка создания рассылки')
+                      } finally {
+                        setCreatingBroadcast(false)
+                      }
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Создать рассылку
+                  </button>
                   <button type="button" className="px-4 py-2 border rounded">Тест на себя</button>
                 </div>
+
+                {(broadcastErr || broadcastOk) && (
+                  <div className="mt-2 text-sm">
+                    {broadcastErr && <div className="text-red-600">{broadcastErr}</div>}
+                    {broadcastOk && <div className="text-green-700">{broadcastOk}</div>}
+                  </div>
+                )}
 
                 {/* Прогресс (заглушка) */}
                 <div className="border rounded-md p-4">

@@ -70,7 +70,7 @@ async function handleSendMessage(task) {
 
   await prisma.notificationLog.create({
     data: {
-      type: 'queue_send',
+      type: meta?.source === 'broadcast' ? 'broadcast_send' : 'queue_send',
       teamId: client.teamId,
       clientId: client.id,
       message,
@@ -78,10 +78,21 @@ async function handleSendMessage(task) {
       telegramMessageId: ok ? String(body?.result?.message_id || '') : null,
       errorMessage: ok ? null : JSON.stringify(body),
       attempts: task.attempts + 1,
-      userAgent: meta?.userAgent || 'queue-worker',
+      userAgent: meta?.userAgent || 'worker',
       ipAddress: meta?.ipAddress || null,
+      campaignId: meta?.campaignId || null,
     },
   });
+
+  // Update campaign progress if present
+  if (meta?.campaignId) {
+    await prisma.broadcastCampaign.update({
+      where: { id: meta.campaignId },
+      data: ok
+        ? { progressSent: { increment: 1 } }
+        : { progressFailed: { increment: 1 } },
+    }).catch(() => {});
+  }
 
   return ok;
 }

@@ -342,7 +342,31 @@ export default function AdminNotificationsRoot() {
                   >
                     Создать рассылку
                   </button>
-                  <button type="button" className="px-4 py-2 border rounded">Тест на себя</button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setBroadcastErr(''); setBroadcastOk('')
+                      try {
+                        const token = getToken()
+                        const resp = await fetch('/api/admin/notifications/test-send', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                          },
+                          body: JSON.stringify({ message: broadcastText || 'Тестовая рассылка' }),
+                        })
+                        const data = await safeJson(resp)
+                        if (!resp.ok) throw new Error((data as any).error || 'Не удалось отправить тест')
+                        setBroadcastOk('Тест поставлен в очередь')
+                      } catch (e) {
+                        setBroadcastErr(e instanceof Error ? e.message : 'Ошибка тестовой отправки')
+                      }
+                    }}
+                    className="px-4 py-2 border rounded"
+                  >
+                    Тест на себя
+                  </button>
                 </div>
 
                 {(broadcastErr || broadcastOk) && (

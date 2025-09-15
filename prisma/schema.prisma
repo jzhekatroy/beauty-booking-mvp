@@ -63,6 +63,16 @@ enum NotificationStatus {
   FAILED
 }
 
+enum BroadcastCampaignStatus {
+  DRAFT
+  SCHEDULED
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 // Команды (салоны)
 model Team {
   id                         String     @id @default(cuid())
@@ -116,6 +126,9 @@ model Team {
   telegramErrors       TelegramError[]
   notificationLogs     NotificationLog[]
   clientActions        ClientAction[]
+  notificationPolicy   TeamNotificationPolicy?
+  messageTemplates     MessageTemplate[]
+  broadcastCampaigns   BroadcastCampaign[]
 
   @@map("teams")
 }
@@ -585,6 +598,10 @@ model NotificationLog {
   errorMessage      String?  @map("error_message")
   attempts          Int      @default(1)
   processingTimeMs  Int?     @map("processing_time_ms")
+
+  // Связь с рассылкой (опционально)
+  campaignId        String?  @map("campaign_id")
+  campaign          BroadcastCampaign? @relation(fields: [campaignId], references: [id])
   
   // Метаданные
   userAgent         String?  @map("user_agent")
@@ -597,6 +614,7 @@ model NotificationLog {
   @@index([type, createdAt])
   @@index([status, createdAt])
   @@index([clientId, createdAt])
+  @@index([campaignId])
   @@map("notification_logs")
 }
 
@@ -618,5 +636,74 @@ model TelegramLog {
   @@index([teamId])
   @@index([level])
   @@map("telegram_logs")
+}
+
+// Политики уведомлений для команды (задержки и напоминания)
+model TeamNotificationPolicy {
+  id                         String   @id @default(cuid())
+  teamId                     String   @unique @map("team_id")
+  team                       Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // Через сколько секунд после бронирования отправлять первое сообщение
+  delayAfterBookingSeconds   Int      @default(60) @map("delay_after_booking_seconds")
+
+  // До 3 напоминаний перед визитом. Храним как JSON: [{ hoursBefore: 24, templateId: '...' }]
+  reminders                  Json     @default("[]")
+
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  @@map("team_notification_policies")
+}
+
+// Шаблоны сообщений
+model MessageTemplate {
+  id          String   @id @default(cuid())
+  teamId      String   @map("team_id")
+  team        Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // Уникальный ключ шаблона внутри команды (например: booking_created, reminder_24h)
+  key         String
+  name        String
+  content     String
+  isHtml      Boolean  @default(false) @map("is_html")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  campaigns   BroadcastCampaign[]
+
+  @@unique([teamId, key])
+  @@map("message_templates")
+}
+
+// Кампания массовой рассылки
+model BroadcastCampaign {
+  id              String                   @id @default(cuid())
+  teamId          String                   @map("team_id")
+  team            Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  name            String?
+  message         String?
+  templateId      String?                  @map("template_id")
+  template        MessageTemplate?         @relation(fields: [templateId], references: [id])
+
+  status          BroadcastCampaignStatus  @default(DRAFT)
+  scheduledAt     DateTime?                @map("scheduled_at")
+  startedAt       DateTime?                @map("started_at")
+  completedAt     DateTime?                @map("completed_at")
+
+  progressTotal   Int                      @default(0) @map("progress_total")
+  progressSent    Int                      @default(0) @map("progress_sent")
+  progressFailed  Int                      @default(0) @map("progress_failed")
+  errorCsvUrl     String?                  @map("error_csv_url")
+
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  logs            NotificationLog[]
+
+  @@index([teamId, status])
+  @@map("broadcast_campaigns")
 }
 

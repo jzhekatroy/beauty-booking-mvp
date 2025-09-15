@@ -24,6 +24,7 @@ export async function POST(request: Request, context: any) {
 
     await prisma.notificationLog.create({
       data: {
+        type: 'manual_resend',
         teamId: log.teamId,
         clientId: log.clientId,
         message: log.message,

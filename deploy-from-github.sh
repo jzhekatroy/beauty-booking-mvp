@@ -15,6 +15,15 @@ git reset --hard origin/main
 echo "📦 Устанавливаем зависимости..."
 npm ci --production=false
 
+echo "💾 Делаем бэкап базы перед миграциями..."
+./scripts/backup-before-migrate.sh || true
+
+echo "🔄 Применяем миграции (prisma migrate deploy)..."
+npx prisma migrate deploy
+
+echo "🧩 Выполняем post-migrate bootstrap..."
+npx tsx scripts/post-migrate-bootstrap.ts
+
 echo "🔨 Собираем проект..."
 npm run build
 
@@ -30,8 +39,14 @@ sleep 5
 
 # Проверяем, что приложение запустилось
 if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
-    echo "✅ Деплой успешно завершен!"
-    echo "🌐 Приложение доступно на http://test.2minutes.ru"
+    echo "🧪 Проверяем эндпоинт глобальных настроек..."
+    if curl -f http://localhost:3000/api/superadmin/global-notification-settings > /dev/null 2>&1; then
+        echo "✅ Деплой успешно завершен!"
+        echo "🌐 Приложение доступно на http://test.2minutes.ru"
+    else
+        echo "❌ Эндпоинт глобальных настроек недоступен (non-2xx)"
+        exit 1
+    fi
 else
     echo "❌ Приложение не отвечает на health check"
     echo "🔍 Проверьте логи: sudo journalctl -u beauty-booking -f"

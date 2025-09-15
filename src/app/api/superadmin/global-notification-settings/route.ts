@@ -58,11 +58,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ settings })
   } catch (error) {
     console.error('Error fetching global notification settings:', error)
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
-    // Отдаем безопасный фолбэк, чтобы UI не падал
     return NextResponse.json({
       settings: {
         id: 'global-default',
@@ -185,10 +180,7 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating global notification settings:', error)
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : String(error)
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

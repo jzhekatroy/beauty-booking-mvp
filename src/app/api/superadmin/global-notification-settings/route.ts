@@ -152,7 +152,10 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating global notification settings:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     )
   }

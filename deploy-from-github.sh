@@ -53,7 +53,9 @@ if curl -f http://localhost:3000/api/health > /dev/null 2>&1; then
         echo "🚜 Запускаем воркер очереди..."
         # Запускаем воркер как отдельный процесс (если compose не используется на проде)
         sudo pkill -f "scripts/queue-worker.js" || true
-        sudo -u beautyapp NODE_ENV=production DATABASE_URL="$DATABASE_URL" nohup node scripts/queue-worker.js > /dev/null 2>&1 &
+        # Логи воркера пишем в queue-worker.log для диагностики
+        sudo -u beautyapp NODE_ENV=production DATABASE_URL="$DATABASE_URL" nohup node scripts/queue-worker.js > queue-worker.log 2>&1 &
+        echo "ℹ️ Логи воркера: /home/beautyapp/beauty-booking/queue-worker.log"
     else
         echo "❌ Эндпоинт глобальных настроек недоступен (non-2xx)"
         exit 1

@@ -1,9 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+async function ensureGlobalNotificationSettingsSchema(): Promise<void> {
+  // Создаем таблицу, если её нет
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS public.global_notification_settings (
+      id TEXT PRIMARY KEY,
+      max_requests_per_minute INTEGER,
+      request_delay_ms INTEGER,
+      max_retry_attempts INTEGER,
+      retry_delay_ms INTEGER,
+      exponential_backoff BOOLEAN,
+      failure_threshold INTEGER,
+      recovery_timeout_ms INTEGER,
+      enabled BOOLEAN,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `)
+
+  // Добавляем отсутствующие колонки (идемпотентно)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS max_requests_per_minute INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS request_delay_ms INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS max_retry_attempts INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS retry_delay_ms INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS exponential_backoff BOOLEAN`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS failure_threshold INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS recovery_timeout_ms INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS enabled BOOLEAN`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`)
+}
+
 // Получить глобальные настройки уведомлений
 export async function GET(request: NextRequest) {
   try {
+    await ensureGlobalNotificationSettingsSchema()
     // Получаем или создаем глобальные настройки
     let settings = await prisma.globalNotificationSettings.findFirst()
 
@@ -52,6 +84,7 @@ export async function GET(request: NextRequest) {
 // Обновить глобальные настройки уведомлений
 export async function PUT(request: NextRequest) {
   try {
+    await ensureGlobalNotificationSettingsSchema()
     const body = await request.json()
 
     const toNumber = (v: any): number | undefined => {
@@ -164,6 +197,7 @@ export async function PUT(request: NextRequest) {
 // Сбросить настройки к дефолтным
 export async function POST(request: NextRequest) {
   try {
+    await ensureGlobalNotificationSettingsSchema()
     let settings = await prisma.globalNotificationSettings.findFirst()
     
     if (settings) {

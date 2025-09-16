@@ -13,6 +13,7 @@ export default function AdminNotificationsRoot() {
   const [enablePostBooking, setEnablePostBooking] = useState<boolean>(false)
   const [delayAfterBookingSec, setDelayAfterBookingSec] = useState<number>(60)
   const [remindersHours, setRemindersHours] = useState<number[]>([])
+  const [remindersEnabled, setRemindersEnabled] = useState<boolean>(true)
   const [sendOnlyDaytime, setSendOnlyDaytime] = useState<boolean>(true)
   const [daytimeFrom, setDaytimeFrom] = useState<string>('09:00')
   const [daytimeTo, setDaytimeTo] = useState<string>('22:00')
@@ -37,6 +38,7 @@ export default function AdminNotificationsRoot() {
   const [photoUrl, setPhotoUrl] = useState<string>('')
   const [photoUploading, setPhotoUploading] = useState<boolean>(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const [helpOpen, setHelpOpen] = useState<boolean>(false)
 
   const handlePhotoInputChange: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files && e.target.files[0]
@@ -99,7 +101,7 @@ export default function AdminNotificationsRoot() {
       })
       const data = await safeJson(resp)
       if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить политику')
-      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[]; postBookingEnabled?: boolean; postBookingMessage?: string; sendOnlyDaytime?: boolean; daytimeFrom?: string; daytimeTo?: string; reminderMessage?: string }
+      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[]; postBookingEnabled?: boolean; postBookingMessage?: string; sendOnlyDaytime?: boolean; daytimeFrom?: string; daytimeTo?: string; reminderMessage?: string; remindersEnabled?: boolean }
       setDelayAfterBookingSec(Number(policy?.delayAfterBookingSeconds ?? 60))
       setEnablePostBooking(Boolean(policy?.postBookingEnabled ?? false))
       setRemindersHours(Array.isArray(policy?.reminders) ? policy.reminders.map(r => Number(r.hoursBefore ?? 24)) : [])
@@ -108,6 +110,7 @@ export default function AdminNotificationsRoot() {
       setDaytimeFrom(String(policy?.daytimeFrom || '09:00'))
       setDaytimeTo(String(policy?.daytimeTo || '22:00'))
       setReminderMessage(String(policy?.reminderMessage || ''))
+      setRemindersEnabled(Boolean(policy?.remindersEnabled ?? true))
     } catch (e) {
       setPolicyError(e instanceof Error ? e.message : 'Ошибка загрузки политики')
     } finally {
@@ -129,6 +132,7 @@ export default function AdminNotificationsRoot() {
         daytimeFrom,
         daytimeTo,
         reminderMessage,
+        remindersEnabled,
       }
       const resp = await fetch('/api/admin/notifications/policy', {
         method: 'PUT',
@@ -178,6 +182,15 @@ export default function AdminNotificationsRoot() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Уведомления и рассылки</h1>
+        <div className="flex justify-end -mt-4 mb-4">
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Справка по переменным
+          </button>
+        </div>
 
         {/* Блок: Уведомления */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -215,7 +228,9 @@ export default function AdminNotificationsRoot() {
                           {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nМы получили вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
                         </div>
                         <div className="mt-3">
-                          <label className="block text-sm text-gray-700 mb-1">Текст сообщения отбивки</label>
+                          <label className="block text-sm text-gray-700 mb-1">Текст сообщения отбивки
+                            <span className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-xs cursor-help" title="Доступные переменные: {client_name}, {client_first_name}, {client_last_name}, {team_name}, {service_name}, {service_names}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}">?</span>
+                          </label>
                           <textarea
                             value={postBookingMessage}
                             onChange={(e) => setPostBookingMessage(e.target.value)}
@@ -231,7 +246,27 @@ export default function AdminNotificationsRoot() {
 
                 {/* Перед визитом */}
                 <div className="border rounded-md p-4">
-                  <div className="font-medium mb-3">Напоминания перед визитом</div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <input type="checkbox" checked={remindersEnabled} onChange={(e)=>setRemindersEnabled(e.target.checked)} />
+                    <div className="font-medium">Напоминания перед визитом</div>
+                  </div>
+                  {!remindersEnabled ? null : (
+                  <>
+                  {/* Поддерживаемые переменные скрыты временно */}
+                  {/* <div className="text-gray-600 text-sm mb-3">
+                    Поддерживаемые переменные в тексте сообщения:
+                    <ul className="list-disc pl-5 space-y-1 mt-1">
+                      <li><span className="text-gray-700">{`{client_name}`}</span> — имя клиента</li>
+                      <li><span className="text-gray-700">{`{client_first_name}`}</span> — имя</li>
+                      <li><span className="text-gray-700">{`{client_last_name}`}</span> — фамилия</li>
+                      <li><span className="text-gray-700">{`{team_name}`}</span> — название салона</li>
+                      <li><span className="text-gray-700">{`{service_name}`}</span> — услуга (или список услуг)</li>
+                      <li><span className="text-gray-700">{`{master_name}`}</span> — имя мастера</li>
+                      <li><span className="text-gray-700">{`{booking_date}`}</span> — дата визита (ДД.ММ.ГГГГ)</li>
+                      <li><span className="text-gray-700">{`{booking_time}`}</span> — время визита (ЧЧ:ММ)</li>
+                      <li><span className="text-gray-700">{`{service_duration_min}`}</span> — длительность услуги (мин)</li>
+                    </ul>
+                  </div> */}
                   <label className="inline-flex items-center gap-2 text-sm mb-3">
                     <input type="checkbox" checked={sendOnlyDaytime} onChange={(e)=>setSendOnlyDaytime(e.target.checked)} />
                     Отправлять уведомления только днём
@@ -248,7 +283,7 @@ export default function AdminNotificationsRoot() {
                     <button
                       type="button"
                       onClick={addReminder}
-                      disabled={remindersHours.length >= 3}
+                      disabled={!remindersEnabled || remindersHours.length >= 3}
                       className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
                     >
                       + Добавить напоминание
@@ -256,7 +291,7 @@ export default function AdminNotificationsRoot() {
                   </div>
                   <div className="mt-3 space-y-3">
                     {remindersHours.length === 0 && (
-                      <div className="text-sm text-gray-500">Нет напоминаний. Добавьте до 3 штук.</div>
+                      <div className="text-sm text-gray-500">{remindersEnabled ? 'Нет напоминаний. Добавьте до 3 штук.' : 'Напоминания отключены'}</div>
                     )}
                     {remindersHours.map((h, idx) => (
                       <div key={idx} className="flex items-center gap-3">
@@ -283,7 +318,9 @@ export default function AdminNotificationsRoot() {
                       {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nНапоминаем про вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
                     </div>
                     <div className="mt-3">
-                      <label className="block text-sm text-gray-700 mb-1">Текст сообщения напоминания</label>
+                      <label className="block text-sm text-gray-700 mb-1">Текст сообщения напоминания
+                        <span className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-xs cursor-help" title="Доступные переменные: {client_name}, {client_first_name}, {client_last_name}, {team_name}, {service_name}, {service_names}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}">?</span>
+                      </label>
                       <textarea
                         value={reminderMessage}
                         onChange={(e)=>setReminderMessage(e.target.value)}
@@ -293,6 +330,8 @@ export default function AdminNotificationsRoot() {
                       />
                     </div>
                   </div>
+                  </>
+                  )}
                 </div>
 
                 {/* Шаблоны сообщений удалены */}
@@ -343,7 +382,9 @@ export default function AdminNotificationsRoot() {
 
               <div className="space-y-6">
                 <div className="border rounded-md p-4">
-                  <label className="block text-sm text-gray-700 mb-1">Текст сообщения</label>
+                  <label className="block text-sm text-gray-700 mb-1">Текст сообщения
+                    <span className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-xs cursor-help" title="В рассылке поддерживаются: {client_name}, {client_first_name}, {client_last_name}, {team_name}">?</span>
+                  </label>
                   <textarea
                     value={broadcastText}
                     onChange={(e) => setBroadcastText(e.target.value)}
@@ -491,6 +532,48 @@ export default function AdminNotificationsRoot() {
           )}
         </div>
       </div>
+
+      {helpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setHelpOpen(false)} />
+          <div className="relative bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-lg font-semibold">Справка по переменным</div>
+              <button type="button" onClick={() => setHelpOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <div className="space-y-6 text-sm text-gray-800 max-h-[70vh] overflow-auto">
+              <div>
+                <div className="font-medium mb-1">Отбивка и напоминания</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>{`{client_name}`} — имя клиента (фолбэк на @username)</li>
+                  <li>{`{client_first_name}`} — имя</li>
+                  <li>{`{client_last_name}`} — фамилия</li>
+                  <li>{`{team_name}`} — название салона</li>
+                  <li>{`{service_name}`} — услуга (или список услуг)</li>
+                  <li>{`{service_names}`} — список услуг (синоним)</li>
+                  <li>{`{master_name}`} — мастер</li>
+                  <li>{`{booking_date}`} — дата визита (ДД.ММ.ГГГГ в TZ салона)</li>
+                  <li>{`{booking_time}`} — время визита (ЧЧ:ММ в TZ салона)</li>
+                  <li>{`{service_duration_min}`} — длительность услуги (мин)</li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-medium mb-1">Рассылка (массовые сообщения)</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>{`{client_name}`} — имя клиента (фолбэк на @username)</li>
+                  <li>{`{client_first_name}`} — имя</li>
+                  <li>{`{client_last_name}`} — фамилия</li>
+                  <li>{`{team_name}`} — название салона</li>
+                </ul>
+                <div className="text-xs text-gray-500 mt-2">В рассылке не поддерживаются переменные бронирования.</div>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button type="button" onClick={() => setHelpOpen(false)} className="px-4 py-2 border rounded">Закрыть</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -49,7 +49,8 @@ const TelegramBotSettings: React.FC<TelegramBotSettingsProps> = ({
   }
 
   const handleTestToken = async () => {
-    if (!token.trim()) {
+    const effectiveToken = (isEditing ? token : (currentToken || '')).trim()
+    if (!effectiveToken) {
       setError('Сначала добавьте токен бота')
       return
     }
@@ -59,7 +60,7 @@ const TelegramBotSettings: React.FC<TelegramBotSettingsProps> = ({
     setSuccess(null)
 
     try {
-      const response = await fetch(`https://api.telegram.org/bot${token.trim()}/getMe`)
+      const response = await fetch(`https://api.telegram.org/bot${effectiveToken}/getMe`)
       const data = await response.json()
 
       if (data.ok) {
@@ -74,20 +75,57 @@ const TelegramBotSettings: React.FC<TelegramBotSettingsProps> = ({
     }
   }
 
+  const handleSetMiniApp = async () => {
+    setIsLoading(true)
+    setError(null)
+    setSuccess(null)
+    try {
+      const auth = localStorage.getItem('token')
+      if (!auth) throw new Error('Не найден токен авторизации')
+      const resp = await fetch('/api/team/telegram/set-menu-button', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth}` }
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data?.error || 'Не удалось назначить Mini App')
+      setSuccess(`✅ Mini App назначен. Кнопка открывает: ${data.url}`)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
           🤖 Telegram Bot
         </h3>
-        {!isEditing && (
+        <div className="flex items-center gap-2">
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              {currentToken ? 'Изменить' : 'Добавить'}
+            </button>
+          )}
           <button
-            onClick={() => setIsEditing(true)}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            onClick={handleTestToken}
+            disabled={isLoading}
+            className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
           >
-            {currentToken ? 'Изменить' : 'Добавить'}
+            Проверить токен
           </button>
-        )}
+          <button
+            onClick={handleSetMiniApp}
+            disabled={isLoading || !(currentToken || (isEditing && token.trim()))}
+            className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
+          >
+            Назначить Mini App
+          </button>
+        </div>
       </div>
 
       {success && (
@@ -136,15 +174,16 @@ const TelegramBotSettings: React.FC<TelegramBotSettingsProps> = ({
             >
               Отмена
             </button>
-            {token.trim() && (
-              <button
-                onClick={handleTestToken}
-                disabled={isLoading}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
-              >
-                Проверить токен
-              </button>
-            )}
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+            <p className="text-xs font-medium text-gray-800 mb-1">Как создать бота и получить API KEY:</p>
+            <ol className="text-xs text-gray-700 space-y-1 list-decimal ml-5">
+              <li>Откройте @BotFather в Telegram</li>
+              <li>Отправьте /newbot и задайте имя и username</li>
+              <li>Скопируйте выданный токен (API KEY)</li>
+              <li>Вставьте токен выше и нажмите «Сохранить»</li>
+            </ol>
           </div>
         </div>
       ) : (
@@ -170,18 +209,7 @@ const TelegramBotSettings: React.FC<TelegramBotSettingsProps> = ({
             </div>
           )}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              📋 Инструкция по настройке:
-            </h4>
-            <ol className="text-xs text-blue-800 space-y-1">
-              <li>1. Откройте @BotFather в Telegram</li>
-              <li>2. Создайте нового бота командой /newbot</li>
-              <li>3. Скопируйте полученный токен</li>
-              <li>4. Вставьте токен в поле выше</li>
-              <li>5. Настройте Mini App в @BotFather</li>
-            </ol>
-          </div>
+          {/* Инструкцию убрали по требованию */}
 
           {currentToken && (
             <div className="bg-green-50 border border-green-200 rounded-md p-4">

@@ -5,6 +5,7 @@ import BookingSettings from '@/components/BookingSettings'
 import BookingLinkSettings from '@/components/BookingLinkSettings'
 import TimezoneSettings from '@/components/TimezoneSettings'
 import TelegramBotSettings from '@/components/TelegramBotSettings'
+import LogoUpload from '@/components/LogoUpload'
 
 interface TeamSettings {
   bookingStep: number
@@ -19,12 +20,24 @@ interface TeamSettings {
   bookingSlug: string
   timezone: string
   telegramBotToken: string | null
+  // доп. поля страницы записи
+  publicServiceCardsWithPhotos?: boolean
+  publicTheme?: 'light' | 'dark'
+  publicPageTitle?: string
+  publicPageDescription?: string
+  publicPageLogoUrl?: string
+  dailyBookingLimit?: number
 }
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<TeamSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // раскрывающиеся блоки
+  const [openMain, setOpenMain] = useState(false)
+  const [openTelegram, setOpenTelegram] = useState(false)
+  const [openTimezone, setOpenTimezone] = useState(false)
+  const [openBookingPage, setOpenBookingPage] = useState(false)
 
   useEffect(() => {
     loadSettings()
@@ -129,6 +142,20 @@ export default function SettingsPage() {
     setSettings(data.settings)
   }
 
+  const updatePublicUx = async (patch: Partial<Pick<TeamSettings,
+    'publicServiceCardsWithPhotos' | 'publicTheme' | 'publicPageTitle' | 'publicPageDescription' | 'publicPageLogoUrl' | 'dailyBookingLimit'>>) => {
+    const token = localStorage.getItem('token')
+    if (!token) throw new Error('Токен авторизации не найден')
+    const response = await fetch('/api/team/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(patch)
+    })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data?.error || 'Ошибка обновления')
+    setSettings((prev) => (prev ? { ...prev, ...patch } : prev))
+  }
+
   const updateFairMasterRotation = async (fairMasterRotation: boolean) => {
     const token = localStorage.getItem('token')
     if (!token) {
@@ -199,84 +226,200 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="mt-8 space-y-6">
-          {/* Ссылка для онлайн записи перенесена в «Настройки страницы записи» */}
-
-          {/* Часовой пояс */}
-          <TimezoneSettings
-            currentTimezone={settings.timezone}
-            onUpdate={updateTimezone}
-          />
+        <div className="mt-6 space-y-4">
+          {/* Основная информация */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <button type="button" onClick={()=>setOpenMain(!openMain)} className="w-full flex items-center justify-between px-4 py-3">
+              <span className="text-lg font-semibold text-gray-900">Основная информация</span>
+              <span className="text-gray-500 text-sm">{openMain ? 'Свернуть' : 'Развернуть'}</span>
+            </button>
+            {openMain && (
+              <div className="px-4 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Контактное лицо</label>
+                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.contactPerson}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.email}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Лимит мастеров</label>
+                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.masterLimit}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Интервал бронирования</label>
+                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.bookingStep} минут</div>
+                  </div>
+                </div>
+                {settings.privacyPolicyUrl && (
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Политика конфиденциальности</label>
+                    <a href={settings.privacyPolicyUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm underline">
+                      {settings.privacyPolicyUrl}
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Telegram Bot */}
-          <TelegramBotSettings
-            currentToken={settings.telegramBotToken}
-            onUpdate={updateTelegramBotToken}
-          />
-
-          {/* Справедливое распределение мастеров перенесено на страницу «Настройки страницы записи» */}
-
-          {/* Настройки бронирования перенесены на страницу «Настройки страницы записи» */}
-
-          {/* Основная информация */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Основная информация
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Контактное лицо
-                </label>
-                <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">
-                  {settings.contactPerson}
-                </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <button type="button" onClick={()=>setOpenTelegram(!openTelegram)} className="w-full flex items-center justify-between px-4 py-3">
+              <span className="text-lg font-semibold text-gray-900">Telegram Bot</span>
+              <span className="text-gray-500 text-sm">{openTelegram ? 'Свернуть' : 'Развернуть'}</span>
+            </button>
+            {openTelegram && (
+              <div className="px-4 pb-4">
+                <TelegramBotSettings currentToken={settings.telegramBotToken} onUpdate={updateTelegramBotToken} />
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">
-                  {settings.email}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Лимит мастеров
-                </label>
-                <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">
-                  {settings.masterLimit}
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Интервал бронирования
-                </label>
-                <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">
-                  {settings.bookingStep} минут
-                </div>
-              </div>
-            </div>
+            )}
+          </div>
 
-            {/* Блок дополнительных настроек уведомлений удален по требованиям */}
+          {/* Часовой пояс салона */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <button type="button" onClick={()=>setOpenTimezone(!openTimezone)} className="w-full flex items-center justify-between px-4 py-3">
+              <span className="text-lg font-semibold text-gray-900">Часовой пояс салона</span>
+              <span className="text-gray-500 text-sm">{openTimezone ? 'Свернуть' : 'Развернуть'}</span>
+            </button>
+            {openTimezone && (
+              <div className="px-4 pb-4">
+                <TimezoneSettings currentTimezone={settings.timezone} onUpdate={updateTimezone} />
+              </div>
+            )}
+          </div>
 
-            {settings.privacyPolicyUrl && (
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Политика конфиденциальности
-                </label>
-                <a
-                  href={settings.privacyPolicyUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 text-sm underline"
-                >
-                  {settings.privacyPolicyUrl}
-                </a>
+          {/* Настройки страницы записи */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <button type="button" onClick={()=>setOpenBookingPage(!openBookingPage)} className="w-full flex items-center justify-between px-4 py-3">
+              <span className="text-lg font-semibold text-gray-900">Настройки страницы записи</span>
+              <span className="text-gray-500 text-sm">{openBookingPage ? 'Свернуть' : 'Развернуть'}</span>
+            </button>
+            {openBookingPage && (
+              <div className="px-4 pb-4 space-y-6">
+                {/* Ссылка для онлайн-записи */}
+                <BookingLinkSettings currentSlug={settings.slug} currentBookingSlug={settings.bookingSlug} onUpdate={updateBookingSlug} />
+                {/* Настройки бронирования */}
+                <BookingSettings />
+
+                {/* Справедливое распределение мастеров */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Справедливое распределение мастеров</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Включить справедливое распределение</label>
+                        <p className="text-sm text-gray-600">Мастера будут появляться на разных позициях по очереди, выравнивая количество показов.</p>
+                      </div>
+                      <div className="ml-4">
+                        <button
+                          type="button"
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            (settings.fairMasterRotation ?? false) ? 'bg-blue-600' : 'bg-gray-200'
+                          }`}
+                          onClick={() => updateFairMasterRotation(!(settings.fairMasterRotation ?? false))}
+                          aria-pressed={settings.fairMasterRotation ?? false}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              (settings.fairMasterRotation ?? false) ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    {(settings.fairMasterRotation ?? false) && (
+                      <div className="mt-2 p-4 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+                        <strong>Как это работает:</strong> система выравнивает позиции показа мастеров (1-я, 2-я, 3-я и т.д.), чтобы каждый мастер получал одинаковое количество показов на каждой позиции.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Внешний вид публичной страницы */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Внешний вид публичной страницы</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Карточки услуг</label>
+                        <p className="text-sm text-gray-600">Отображать карточки услуг с фотографиями или компактным списком.</p>
+                      </div>
+                      <div className="ml-4">
+                        <button
+                          type="button"
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            (settings.publicServiceCardsWithPhotos ?? true) ? 'bg-blue-600' : 'bg-gray-200'
+                          }`}
+                          onClick={() => updatePublicUx({ publicServiceCardsWithPhotos: !(settings.publicServiceCardsWithPhotos ?? true) })}
+                          aria-pressed={settings.publicServiceCardsWithPhotos ?? true}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              (settings.publicServiceCardsWithPhotos ?? true) ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Тема</label>
+                        <p className="text-sm text-gray-600">Светлая или тёмная тема публичной страницы записи.</p>
+                      </div>
+                      <div className="ml-4 flex gap-2">
+                        <button type="button" className={`px-3 py-1 text-sm border rounded ${settings.publicTheme === 'light' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`} onClick={() => updatePublicUx({ publicTheme: 'light' })}>Светлая</button>
+                        <button type="button" className={`px-3 py-1 text-sm border rounded ${settings.publicTheme === 'dark' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`} onClick={() => updatePublicUx({ publicTheme: 'dark' })}>Тёмная</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Брендинг салона */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Брендинг салона</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Название салона</label>
+                      <input type="text" value={settings.publicPageTitle || ''} onChange={(e) => updatePublicUx({ publicPageTitle: e.target.value || undefined })} placeholder="Например: BEAUTY SALON" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                      <p className="text-sm text-gray-600 mt-1">Отображается на публичной странице записи</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Описание салона</label>
+                      <textarea value={settings.publicPageDescription || ''} onChange={(e) => updatePublicUx({ publicPageDescription: e.target.value || undefined })} placeholder="Добро пожаловать в наш салон красоты! Мы предлагаем профессиональные услуги..." rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                      <p className="text-sm text-gray-600 mt-1">Краткое описание салона для клиентов</p>
+                    </div>
+                    <LogoUpload currentLogoUrl={settings.publicPageLogoUrl} onLogoChange={(url) => updatePublicUx({ publicPageLogoUrl: url })} onLogoRemove={() => updatePublicUx({ publicPageLogoUrl: undefined })} label="Логотип салона" />
+                  </div>
+                </div>
+
+                {/* Настройки клиентов */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Настройки клиентов</h3>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Лимит записей в день на клиента</label>
+                      <div className="mb-3">
+                        <label className="flex items-center">
+                          <input type="checkbox" checked={(settings.dailyBookingLimit || 0) === 0} onChange={(e) => updatePublicUx({ dailyBookingLimit: e.target.checked ? 0 : 3 })} className="mr-2" />
+                          <span className="text-sm font-medium text-gray-700">Без ограничений</span>
+                        </label>
+                        <p className="text-sm text-gray-600 ml-6">Клиенты могут создавать неограниченное количество записей в день</p>
+                      </div>
+                      {settings.dailyBookingLimit !== 0 && (
+                        <div>
+                          <input type="number" min="1" max="100" value={settings.dailyBookingLimit || 3} onChange={(e) => updatePublicUx({ dailyBookingLimit: parseInt(e.target.value) || 3 })} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                          <p className="text-sm text-gray-600 mt-1">Максимальное количество записей за день (1-100)</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

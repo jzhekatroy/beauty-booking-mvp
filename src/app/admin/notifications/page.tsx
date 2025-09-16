@@ -62,7 +62,10 @@ export default function AdminNotificationsRoot() {
   }
 
   const addReminder = () => {
-    if (remindersHours.length < 3) setRemindersHours([...remindersHours, 24])
+    if (remindersHours.length >= 3) return
+    const defaults = [1, 12, 24]
+    const next = defaults[remindersHours.length] ?? 24
+    setRemindersHours([...remindersHours, next])
   }
   const removeReminder = (idx: number) => {
     setRemindersHours(remindersHours.filter((_, i) => i !== idx))
@@ -229,7 +232,17 @@ export default function AdminNotificationsRoot() {
 
                 {/* Перед визитом */}
                 <div className="border rounded-md p-4">
-                  <div className="font-medium mb-3">Напоминания перед визитом</div>
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">Напоминания перед визитом</div>
+                    <button
+                      type="button"
+                      onClick={addReminder}
+                      disabled={remindersHours.length >= 3}
+                      className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
+                    >
+                      + Добавить напоминание
+                    </button>
+                  </div>
                   <label className="inline-flex items-center gap-2 text-sm mb-3">
                     <input type="checkbox" checked={sendOnlyDaytime} onChange={(e)=>setSendOnlyDaytime(e.target.checked)} />
                     Отправлять уведомления только днём
@@ -239,20 +252,6 @@ export default function AdminNotificationsRoot() {
                     <input type="time" value={daytimeFrom} onChange={(e)=>setDaytimeFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
                     <span className="text-sm text-gray-700">—</span>
                     <input type="time" value={daytimeTo} onChange={(e)=>setDaytimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-gray-700">Быстрые варианты:</span>
-                    <button type="button" onClick={()=>setRemindersHours([...new Set([...remindersHours, 1])]).slice(0,3)} className="px-2 py-1 text-xs border rounded">1 час</button>
-                    <button type="button" onClick={()=>setRemindersHours([...new Set([...remindersHours, 12])]).slice(0,3)} className="px-2 py-1 text-xs border rounded">12 часов</button>
-                    <button type="button" onClick={()=>setRemindersHours([...new Set([...remindersHours, 24])]).slice(0,3)} className="px-2 py-1 text-xs border rounded">24 часа</button>
-                    <button
-                      type="button"
-                      onClick={addReminder}
-                      disabled={remindersHours.length >= 3}
-                      className="ml-2 px-3 py-1.5 text-sm border rounded disabled:opacity-50"
-                    >
-                      + Добавить
-                    </button>
                   </div>
                   <div className="mt-3 space-y-3">
                     {remindersHours.length === 0 && (

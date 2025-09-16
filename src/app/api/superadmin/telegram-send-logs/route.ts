@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       take: 500,
       include: {
         team: { select: { name: true } },
-        client: { select: { firstName: true, lastName: true, telegramUsername: true } }
+        client: { select: { firstName: true, lastName: true, telegramUsername: true, telegramId: true } }
       }
     })
 
@@ -65,6 +65,8 @@ export async function GET(request: NextRequest) {
         const username = (l as any).client?.telegramUsername ? `@${(l as any).client?.telegramUsername}` : ''
         return (first || last) ? `${first} ${last}`.trim() : (username || l.clientId)
       })(),
+      telegramUserId: ((l as any).client?.telegramId ? String((l as any).client.telegramId) : null),
+      telegramUsername: ((l as any).client?.telegramUsername ? `@${(l as any).client.telegramUsername}` : null),
       message: l.message,
       status: l.status as 'SUCCESS' | 'FAILED',
       telegramMessageId: l.telegramMessageId,

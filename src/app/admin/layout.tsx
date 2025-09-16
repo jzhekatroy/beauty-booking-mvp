@@ -90,7 +90,6 @@ export default function AdminLayout({
     { name: 'Услуги', href: '/admin/services', icon: Scissors },
     { name: 'Мастера', href: '/admin/masters', icon: User },
     { name: 'Настройки', href: '/admin/settings', icon: Settings },
-    { name: 'Настройки страницы записи', href: '/admin/booking-page-settings', icon: BookOpen },
     { name: 'Уведомления и рассылки', href: '/admin/notifications', icon: BookOpen },
   ]
 

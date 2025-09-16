@@ -653,6 +653,11 @@ export async function POST(request: NextRequest) {
               // Базовое время отправки в UTC
               const desiredUtc = new Date(booking.startTime.getTime() - hoursBefore * 60 * 60 * 1000)
 
+              // Если базовое время уже в прошлом — пропускаем это напоминание
+              if (desiredUtc.getTime() <= Date.now()) {
+                continue
+              }
+
               let executeUtc = desiredUtc
               if (sendOnlyDaytime) {
                 // Переводим желаемое время в локальное время салона
@@ -679,9 +684,9 @@ export async function POST(request: NextRequest) {
                 executeUtc = createDateInSalonTimezone(y, m, d, h, mm, tz)
               }
 
-              // Если получилось в прошлом — отправим как можно скорее
-              if (executeUtc.getTime() < Date.now()) {
-                executeUtc = new Date(Date.now() + 5000)
+              // Доп. защита: если после коррекции получилось в прошлом — пропускаем
+              if (executeUtc.getTime() <= Date.now()) {
+                continue
               }
 
               const serviceNames = booking.services.map(s => s.service?.name).filter(Boolean)

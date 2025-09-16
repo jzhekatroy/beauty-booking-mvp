@@ -195,11 +195,10 @@ export default function AdminNotificationsRoot() {
               <div className="space-y-6">
                 {/* Отбивка после бронирования */}
                 <div className="border rounded-md p-4">
-                  <div className="font-medium mb-2">Отбивка после оформления бронирования</div>
-                  <label className="inline-flex items-center gap-2 text-sm mb-3">
+                  <div className="flex items-center gap-2 mb-3">
                     <input type="checkbox" checked={enablePostBooking} onChange={(e) => setEnablePostBooking(e.target.checked)} />
-                    Включить отбивку после оформления бронирования
-                  </label>
+                    <div className="font-medium">Отбивка после оформления бронирования</div>
+                  </div>
                   {enablePostBooking && (
                     <>
                       <label className="block text-sm text-gray-700 mb-1">Задержка отправки (секунды)</label>
@@ -232,8 +231,20 @@ export default function AdminNotificationsRoot() {
 
                 {/* Перед визитом */}
                 <div className="border rounded-md p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">Напоминания перед визитом</div>
+                  <div className="font-medium mb-3">Напоминания перед визитом</div>
+                  <label className="inline-flex items-center gap-2 text-sm mb-3">
+                    <input type="checkbox" checked={sendOnlyDaytime} onChange={(e)=>setSendOnlyDaytime(e.target.checked)} />
+                    Отправлять уведомления только днём
+                  </label>
+                  {sendOnlyDaytime && (
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm text-gray-700">Период:</span>
+                      <input type="time" value={daytimeFrom} onChange={(e)=>setDaytimeFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                      <span className="text-sm text-gray-700">—</span>
+                      <input type="time" value={daytimeTo} onChange={(e)=>setDaytimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                    </div>
+                  )}
+                  <div className="mb-3">
                     <button
                       type="button"
                       onClick={addReminder}
@@ -242,16 +253,6 @@ export default function AdminNotificationsRoot() {
                     >
                       + Добавить напоминание
                     </button>
-                  </div>
-                  <label className="inline-flex items-center gap-2 text-sm mb-3">
-                    <input type="checkbox" checked={sendOnlyDaytime} onChange={(e)=>setSendOnlyDaytime(e.target.checked)} />
-                    Отправлять уведомления только днём
-                  </label>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-sm text-gray-700">Период:</span>
-                    <input type="time" value={daytimeFrom} onChange={(e)=>setDaytimeFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
-                    <span className="text-sm text-gray-700">—</span>
-                    <input type="time" value={daytimeTo} onChange={(e)=>setDaytimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
                   </div>
                   <div className="mt-3 space-y-3">
                     {remindersHours.length === 0 && (

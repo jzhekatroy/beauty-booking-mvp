@@ -416,8 +416,7 @@ export default function AdminNotificationsRoot() {
                     )}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Требуется публичный HTTPS‑URL без авторизации. Рекомендованные форматы: jpg, jpeg, png, webp (до ~10 МБ).
-                    Можно загрузить в облако/Диск и поделиться прямой ссылкой на файл (не на страницу предпросмотра).
+                    Требования к файлу: JPEG/JPG, PNG или WebP; максимальный размер — 5 МБ.
                   </div>
                   {photoUrl && (
                     <div className="mt-3">

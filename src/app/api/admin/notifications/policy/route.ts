@@ -75,9 +75,11 @@ export async function GET(request: NextRequest) {
     const json = ((policy?.reminders as unknown) as PolicyJson) || {}
     const items = Array.isArray((json as any).items) ? (json as any).items : []
 
+    const effectivePolicy: { delayAfterBookingSeconds: number; reminders: any } = policy ?? { delayAfterBookingSeconds: 60, reminders: {} }
+
     return NextResponse.json({
       policy: {
-        delayAfterBookingSeconds: policy.delayAfterBookingSeconds,
+        delayAfterBookingSeconds: effectivePolicy.delayAfterBookingSeconds,
         reminders: items,
         postBookingEnabled: Boolean(json.postBookingEnabled ?? false),
         postBookingMessage: String(json.postBookingMessage || defaultPostBookingMessage()),

@@ -10,6 +10,7 @@ export default function AdminNotificationsRoot() {
   const [openBroadcast, setOpenBroadcast] = useState(false)
 
   // Policy
+  const [enablePostBooking, setEnablePostBooking] = useState<boolean>(false)
   const [delayAfterBookingSec, setDelayAfterBookingSec] = useState<number>(60)
   const [remindersHours, setRemindersHours] = useState<number[]>([])
   const [loadingPolicy, setLoadingPolicy] = useState(false)
@@ -98,8 +99,9 @@ export default function AdminNotificationsRoot() {
       })
       const data = await safeJson(resp)
       if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить политику')
-      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[] }
+      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[]; postBookingEnabled?: boolean }
       setDelayAfterBookingSec(Number(policy?.delayAfterBookingSeconds ?? 60))
+      setEnablePostBooking(Boolean(policy?.postBookingEnabled ?? false))
       setRemindersHours(Array.isArray(policy?.reminders) ? policy.reminders.map(r => Number(r.hoursBefore ?? 24)) : [])
     } catch (e) {
       setPolicyError(e instanceof Error ? e.message : 'Ошибка загрузки политики')
@@ -116,6 +118,7 @@ export default function AdminNotificationsRoot() {
       const body = {
         delayAfterBookingSeconds: Number.isFinite(delayAfterBookingSec) ? Math.max(0, Math.floor(delayAfterBookingSec)) : 60,
         reminders: remindersHours.slice(0, 3).map(h => ({ hoursBefore: Math.min(72, Math.max(1, Math.floor(h))) })),
+        postBookingEnabled: !!enablePostBooking,
       }
       const resp = await fetch('/api/admin/notifications/policy', {
         method: 'PUT',
@@ -230,14 +233,28 @@ export default function AdminNotificationsRoot() {
                 {/* После бронирования */}
                 <div className="border rounded-md p-4">
                   <div className="font-medium mb-2">После оформления бронирования</div>
-                  <label className="block text-sm text-gray-700 mb-1">Задержка отправки (секунды)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={delayAfterBookingSec}
-                    onChange={(e) => setDelayAfterBookingSec(parseInt(e.target.value || '0', 10))}
-                    className="w-full max-w-xs border rounded px-3 py-2"
-                  />
+                  <label className="inline-flex items-center gap-2 text-sm mb-3">
+                    <input type="checkbox" checked={enablePostBooking} onChange={(e) => setEnablePostBooking(e.target.checked)} />
+                    Включить отбивку после оформления бронирования
+                  </label>
+                  {enablePostBooking && (
+                    <>
+                      <label className="block text-sm text-gray-700 mb-1">Задержка отправки (секунды)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={delayAfterBookingSec}
+                        onChange={(e) => setDelayAfterBookingSec(parseInt(e.target.value || '0', 10))}
+                        className="w-full max-w-xs border rounded px-3 py-2"
+                      />
+                      <div className="mt-3 text-sm text-gray-600">
+                        Пример сообщения:
+                        <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
+                          {`Уважаемый клиент\nВы оформили запись в салон на услугу к мастеру на время.\nЧтобы отменить запись — ссылка на отмену.`}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Перед визитом */}
@@ -342,11 +359,6 @@ export default function AdminNotificationsRoot() {
                   <li><span className="text-gray-700">{`{client_first_name}`}</span> — имя</li>
                   <li><span className="text-gray-700">{`{client_last_name}`}</span> — фамилия</li>
                   <li><span className="text-gray-700">{`{team_name}`}</span> — название салона</li>
-                  <li><span className="text-gray-700">{`{booking_date}`}</span> — дата визита (ДД.ММ.ГГГГ)</li>
-                  <li><span className="text-gray-700">{`{booking_time}`}</span> — время визита (ЧЧ:ММ)</li>
-                  <li><span className="text-gray-700">{`{service_list}`}</span> — список услуг</li>
-                  <li><span className="text-gray-700">{`{booking_link}`}</span> — ссылка на запись/подтверждение</li>
-                  <li><span className="text-gray-700">{`{cancel_link}`}</span> — ссылка на отмену</li>
                 </ul>
 
                 <div className="mt-3">

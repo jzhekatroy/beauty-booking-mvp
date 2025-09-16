@@ -18,6 +18,7 @@ type PolicyJson = {
   daytimeFrom?: string
   daytimeTo?: string
   reminderMessage?: string
+  remindersEnabled?: boolean
 }
 
 function defaultPostBookingMessage(): string {
@@ -38,20 +39,41 @@ export async function GET(request: NextRequest) {
     if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 })
     }
-
-    let policy = await prisma.teamNotificationPolicy.findUnique({ where: { teamId: user.teamId } })
-    if (!policy) {
-      policy = await prisma.teamNotificationPolicy.create({
-        data: {
-          teamId: user.teamId,
-          delayAfterBookingSeconds: 60,
-          reminders: {},
-        },
-      })
+    // Support environments where Prisma Client may not include TeamNotificationPolicy model
+    let policy: { delayAfterBookingSeconds: number; reminders: any } | null = null
+    const hasModel = (prisma as any).teamNotificationPolicy && typeof (prisma as any).teamNotificationPolicy.findUnique === 'function'
+    if (hasModel) {
+      policy = await (prisma as any).teamNotificationPolicy.findUnique({ where: { teamId: user.teamId } })
+      if (!policy) {
+        policy = await (prisma as any).teamNotificationPolicy.create({
+          data: { teamId: user.teamId, delayAfterBookingSeconds: 60, reminders: {} },
+        })
+      }
+    } else {
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS public.team_notification_policies (
+          id text PRIMARY KEY DEFAULT gen_random_uuid(),
+          team_id text UNIQUE NOT NULL,
+          delay_after_booking_seconds integer NOT NULL DEFAULT 60,
+          reminders jsonb NOT NULL DEFAULT '{}'::jsonb,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          updated_at timestamptz NOT NULL DEFAULT now()
+        )`)
+      const rows = await prisma.$queryRawUnsafe<any[]>(`SELECT delay_after_booking_seconds as "delayAfterBookingSeconds", reminders FROM public.team_notification_policies WHERE team_id = $1`, user.teamId)
+      if (rows.length === 0) {
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO public.team_notification_policies(id, team_id, delay_after_booking_seconds, reminders)
+          VALUES ($1, $1, $2, $3::jsonb)
+          ON CONFLICT (team_id) DO NOTHING
+        `, user.teamId, 60, JSON.stringify({}))
+        policy = { delayAfterBookingSeconds: 60, reminders: {} }
+      } else {
+        policy = rows[0]
+      }
     }
 
-    const json = (policy.reminders as unknown as PolicyJson) || {}
-    const items = Array.isArray(json.items) ? json.items : []
+    const json = ((policy?.reminders as unknown) as PolicyJson) || {}
+    const items = Array.isArray((json as any).items) ? (json as any).items : []
 
     return NextResponse.json({
       policy: {
@@ -69,6 +91,7 @@ export async function GET(request: NextRequest) {
           'Если планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\n' +
           'Хорошего дня!'
         )),
+        remindersEnabled: Boolean(json.remindersEnabled ?? true),
       },
     })
   } catch (error) {
@@ -102,6 +125,7 @@ export async function PUT(request: NextRequest) {
       'Если планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\n' +
       'Хорошего дня!'
     )
+    const remindersEnabled = body.remindersEnabled === undefined ? true : !!body.remindersEnabled
 
     const delayAfterBookingSeconds = Number.isFinite(Number(delayAfterBookingSecondsRaw))
       ? Math.max(0, Math.floor(Number(delayAfterBookingSecondsRaw)))
@@ -118,13 +142,27 @@ export async function PUT(request: NextRequest) {
       daytimeFrom,
       daytimeTo,
       reminderMessage,
+      remindersEnabled,
     }
 
-    const updated = await prisma.teamNotificationPolicy.upsert({
-      where: { teamId: user.teamId },
-      update: { delayAfterBookingSeconds, reminders: remindersJson as any },
-      create: { teamId: user.teamId, delayAfterBookingSeconds, reminders: remindersJson as any },
-    })
+    const hasModel = (prisma as any).teamNotificationPolicy && typeof (prisma as any).teamNotificationPolicy.upsert === 'function'
+    let updated: { delayAfterBookingSeconds: number }
+    if (hasModel) {
+      const res = await (prisma as any).teamNotificationPolicy.upsert({
+        where: { teamId: user.teamId },
+        update: { delayAfterBookingSeconds, reminders: remindersJson as any },
+        create: { teamId: user.teamId, delayAfterBookingSeconds, reminders: remindersJson as any },
+      })
+      updated = { delayAfterBookingSeconds: res.delayAfterBookingSeconds }
+    } else {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO public.team_notification_policies(id, team_id, delay_after_booking_seconds, reminders)
+        VALUES ($1, $1, $2, $3::jsonb)
+        ON CONFLICT (team_id)
+        DO UPDATE SET delay_after_booking_seconds = EXCLUDED.delay_after_booking_seconds, reminders = EXCLUDED.reminders, updated_at = now()
+      `, user.teamId, delayAfterBookingSeconds, JSON.stringify(remindersJson))
+      updated = { delayAfterBookingSeconds }
+    }
 
     return NextResponse.json({ success: true, policy: {
       delayAfterBookingSeconds: updated.delayAfterBookingSeconds,

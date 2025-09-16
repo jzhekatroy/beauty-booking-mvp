@@ -13,6 +13,10 @@ export default function AdminNotificationsRoot() {
   const [enablePostBooking, setEnablePostBooking] = useState<boolean>(false)
   const [delayAfterBookingSec, setDelayAfterBookingSec] = useState<number>(60)
   const [remindersHours, setRemindersHours] = useState<number[]>([])
+  const [sendOnlyDaytime, setSendOnlyDaytime] = useState<boolean>(true)
+  const [daytimeFrom, setDaytimeFrom] = useState<string>('09:00')
+  const [daytimeTo, setDaytimeTo] = useState<string>('22:00')
+  const [reminderMessage, setReminderMessage] = useState<string>('')
   const [loadingPolicy, setLoadingPolicy] = useState(false)
   const [savingPolicy, setSavingPolicy] = useState(false)
   const [policyError, setPolicyError] = useState<string>('')
@@ -92,11 +96,15 @@ export default function AdminNotificationsRoot() {
       })
       const data = await safeJson(resp)
       if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить политику')
-      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[]; postBookingEnabled?: boolean; postBookingMessage?: string }
+      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[]; postBookingEnabled?: boolean; postBookingMessage?: string; sendOnlyDaytime?: boolean; daytimeFrom?: string; daytimeTo?: string; reminderMessage?: string }
       setDelayAfterBookingSec(Number(policy?.delayAfterBookingSeconds ?? 60))
       setEnablePostBooking(Boolean(policy?.postBookingEnabled ?? false))
       setRemindersHours(Array.isArray(policy?.reminders) ? policy.reminders.map(r => Number(r.hoursBefore ?? 24)) : [])
       setPostBookingMessage(String(policy?.postBookingMessage || ''))
+      setSendOnlyDaytime(Boolean(policy?.sendOnlyDaytime ?? true))
+      setDaytimeFrom(String(policy?.daytimeFrom || '09:00'))
+      setDaytimeTo(String(policy?.daytimeTo || '22:00'))
+      setReminderMessage(String(policy?.reminderMessage || ''))
     } catch (e) {
       setPolicyError(e instanceof Error ? e.message : 'Ошибка загрузки политики')
     } finally {
@@ -114,6 +122,10 @@ export default function AdminNotificationsRoot() {
         reminders: remindersHours.slice(0, 3).map(h => ({ hoursBefore: Math.min(72, Math.max(1, Math.floor(h))) })),
         postBookingEnabled: !!enablePostBooking,
         postBookingMessage: postBookingMessage,
+        sendOnlyDaytime,
+        daytimeFrom,
+        daytimeTo,
+        reminderMessage,
       }
       const resp = await fetch('/api/admin/notifications/policy', {
         method: 'PUT',
@@ -217,15 +229,29 @@ export default function AdminNotificationsRoot() {
 
                 {/* Перед визитом */}
                 <div className="border rounded-md p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">Напоминания перед визитом</div>
+                  <div className="font-medium mb-3">Напоминания перед визитом</div>
+                  <label className="inline-flex items-center gap-2 text-sm mb-3">
+                    <input type="checkbox" checked={sendOnlyDaytime} onChange={(e)=>setSendOnlyDaytime(e.target.checked)} />
+                    Отправлять уведомления только днём
+                  </label>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-sm text-gray-700">Период:</span>
+                    <input type="time" value={daytimeFrom} onChange={(e)=>setDaytimeFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                    <span className="text-sm text-gray-700">—</span>
+                    <input type="time" value={daytimeTo} onChange={(e)=>setDaytimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm text-gray-700">Быстрые варианты:</span>
+                    <button type="button" onClick={()=>setRemindersHours([...new Set([...remindersHours, 1])]).slice(0,3)} className="px-2 py-1 text-xs border rounded">1 час</button>
+                    <button type="button" onClick={()=>setRemindersHours([...new Set([...remindersHours, 12])]).slice(0,3)} className="px-2 py-1 text-xs border rounded">12 часов</button>
+                    <button type="button" onClick={()=>setRemindersHours([...new Set([...remindersHours, 24])]).slice(0,3)} className="px-2 py-1 text-xs border rounded">24 часа</button>
                     <button
                       type="button"
                       onClick={addReminder}
                       disabled={remindersHours.length >= 3}
-                      className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
+                      className="ml-2 px-3 py-1.5 text-sm border rounded disabled:opacity-50"
                     >
-                      + Добавить напоминание
+                      + Добавить
                     </button>
                   </div>
                   <div className="mt-3 space-y-3">
@@ -249,6 +275,23 @@ export default function AdminNotificationsRoot() {
                         <button type="button" onClick={() => removeReminder(idx)} className="text-sm text-red-600 hover:underline">Удалить</button>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="mt-4 text-sm text-gray-600">
+                    Пример сообщения:
+                    <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
+                      {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nНапоминаем про вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
+                    </div>
+                    <div className="mt-3">
+                      <label className="block text-sm text-gray-700 mb-1">Текст сообщения напоминания</label>
+                      <textarea
+                        value={reminderMessage}
+                        onChange={(e)=>setReminderMessage(e.target.value)}
+                        rows={5}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Можно использовать переменные: {client_name}, {team_name}, {service_name}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}"
+                      />
+                    </div>
                   </div>
                 </div>
 

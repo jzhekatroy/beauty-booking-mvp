@@ -14,6 +14,10 @@ type PolicyJson = {
   items?: Array<{ hoursBefore: number }>
   postBookingEnabled?: boolean
   postBookingMessage?: string
+  sendOnlyDaytime?: boolean
+  daytimeFrom?: string
+  daytimeTo?: string
+  reminderMessage?: string
 }
 
 function defaultPostBookingMessage(): string {
@@ -55,6 +59,16 @@ export async function GET(request: NextRequest) {
         reminders: items,
         postBookingEnabled: Boolean(json.postBookingEnabled ?? false),
         postBookingMessage: String(json.postBookingMessage || defaultPostBookingMessage()),
+        sendOnlyDaytime: Boolean(json.sendOnlyDaytime ?? true),
+        daytimeFrom: String(json.daytimeFrom || '09:00'),
+        daytimeTo: String(json.daytimeTo || '22:00'),
+        reminderMessage: String(json.reminderMessage || (
+          '{client_name}, спасибо за запись в {team_name} ✨\n\n' +
+          'Напоминаем про вашу заявку на {service_name} к мастеру {master_name} — держим для вас время ✅\n' +
+          'Дата и время: {booking_date} в {booking_time} (длительность ~{service_duration_min} мин) ⏱️\n' +
+          'Если планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\n' +
+          'Хорошего дня!'
+        )),
       },
     })
   } catch (error) {
@@ -78,6 +92,16 @@ export async function PUT(request: NextRequest) {
     const remindersRaw = Array.isArray(body.reminders) ? body.reminders : []
     const postBookingEnabled = !!body.postBookingEnabled
     const postBookingMessage = String(body.postBookingMessage || '').trim() || defaultPostBookingMessage()
+    const sendOnlyDaytime = !!body.sendOnlyDaytime
+    const daytimeFrom = String(body.daytimeFrom || '09:00')
+    const daytimeTo = String(body.daytimeTo || '22:00')
+    const reminderMessage = String(body.reminderMessage || '').trim() || (
+      '{client_name}, спасибо за запись в {team_name} ✨\n\n' +
+      'Напоминаем про вашу заявку на {service_name} к мастеру {master_name} — держим для вас время ✅\n' +
+      'Дата и время: {booking_date} в {booking_time} (длительность ~{service_duration_min} мин) ⏱️\n' +
+      'Если планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\n' +
+      'Хорошего дня!'
+    )
 
     const delayAfterBookingSeconds = Number.isFinite(Number(delayAfterBookingSecondsRaw))
       ? Math.max(0, Math.floor(Number(delayAfterBookingSecondsRaw)))
@@ -90,6 +114,10 @@ export async function PUT(request: NextRequest) {
       items: remindersItems,
       postBookingEnabled,
       postBookingMessage,
+      sendOnlyDaytime,
+      daytimeFrom,
+      daytimeTo,
+      reminderMessage,
     }
 
     const updated = await prisma.teamNotificationPolicy.upsert({
@@ -103,6 +131,10 @@ export async function PUT(request: NextRequest) {
       reminders: remindersItems,
       postBookingEnabled,
       postBookingMessage,
+      sendOnlyDaytime,
+      daytimeFrom,
+      daytimeTo,
+      reminderMessage,
     } })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error'

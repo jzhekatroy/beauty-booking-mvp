@@ -43,12 +43,10 @@ export async function GET(request: NextRequest) {
       ungroupedGroupName: (user.team as any).ungroupedGroupName || 'Основные услуги'
     }
 
-    // Добавляем публичные настройки UX (через raw на случай отсутствия полей в клиенте Prisma)
+    // Добавляем публичные настройки (без блока "внешний вид")
     try {
-      const rows: any[] = await prisma.$queryRaw`SELECT "publicServiceCardsWithPhotos", "publicTheme", "publicPageTitle", "publicPageDescription", "publicPageLogoUrl", "maxBookingsPerDayPerClient", "notificationsEnabled", "reminderHours" FROM "public"."teams" WHERE id = ${user.team.id} LIMIT 1`
+      const rows: any[] = await prisma.$queryRaw`SELECT "publicPageTitle", "publicPageDescription", "publicPageLogoUrl", "maxBookingsPerDayPerClient", "notificationsEnabled", "reminderHours" FROM "public"."teams" WHERE id = ${user.team.id} LIMIT 1`
       if (rows && rows[0]) {
-        (settings as any).publicServiceCardsWithPhotos = Boolean(rows[0].publicServiceCardsWithPhotos ?? true)
-        ;(settings as any).publicTheme = String(rows[0].publicTheme ?? 'light')
         ;(settings as any).publicPageTitle = rows[0].publicPageTitle || null
         ;(settings as any).publicPageDescription = rows[0].publicPageDescription || null
         ;(settings as any).publicPageLogoUrl = rows[0].publicPageLogoUrl || null
@@ -56,8 +54,6 @@ export async function GET(request: NextRequest) {
         ;(settings as any).notificationsEnabled = Boolean(rows[0].notificationsEnabled ?? false)
         ;(settings as any).reminderHours = rows[0].reminderHours || 24
       } else {
-        (settings as any).publicServiceCardsWithPhotos = true
-        ;(settings as any).publicTheme = 'light'
         ;(settings as any).publicPageTitle = null
         ;(settings as any).publicPageDescription = null
         ;(settings as any).publicPageLogoUrl = null
@@ -66,9 +62,7 @@ export async function GET(request: NextRequest) {
         ;(settings as any).reminderHours = 24
       }
     } catch (e) {
-      // Если колонок нет — возвращаем дефолты
-      (settings as any).publicServiceCardsWithPhotos = true
-      ;(settings as any).publicTheme = 'light'
+      // Если колонок нет — возвращаем дефолты (без внешнего вида)
       ;(settings as any).publicPageTitle = null
       ;(settings as any).publicPageDescription = null
       ;(settings as any).publicPageLogoUrl = null
@@ -76,6 +70,9 @@ export async function GET(request: NextRequest) {
       ;(settings as any).notificationsEnabled = false
       ;(settings as any).reminderHours = 24
     }
+
+    // Справедливое распределение мастеров — всегда включено
+    ;(settings as any).fairMasterRotation = true
 
     return NextResponse.json({ settings })
 
@@ -255,7 +252,8 @@ export async function PUT(request: NextRequest) {
     if (maxBookingsPerDayPerClient !== undefined) updateData.maxBookingsPerDayPerClient = maxBookingsPerDayPerClient
     if (masterLimit !== undefined) updateData.masterLimit = masterLimit
     if (webhooksEnabled !== undefined) updateData.webhooksEnabled = webhooksEnabled
-    if (fairMasterRotation !== undefined) updateData.fairMasterRotation = fairMasterRotation
+    // Всегда включаем справедливое распределение
+    updateData.fairMasterRotation = true
     if (privacyPolicyUrl !== undefined) updateData.privacyPolicyUrl = privacyPolicyUrl || null
     if (contactPerson !== undefined) updateData.contactPerson = contactPerson
     if (email !== undefined) updateData.email = email
@@ -265,14 +263,11 @@ export async function PUT(request: NextRequest) {
     if (telegramBotToken !== undefined) updateData.telegramBotToken = telegramBotToken?.trim() || null
     if (ungroupedGroupName !== undefined) updateData.ungroupedGroupName = (ungroupedGroupName || 'Основные услуги').trim()
     
-    // Публичные UX-настройки
-    if (publicServiceCardsWithPhotos !== undefined) updateData.publicServiceCardsWithPhotos = publicServiceCardsWithPhotos
-    if (publicTheme !== undefined) updateData.publicTheme = publicTheme
+    // Публичные UX-настройки (без внешнего вида)
     if (publicPageTitle !== undefined) updateData.publicPageTitle = publicPageTitle || null
     if (publicPageDescription !== undefined) updateData.publicPageDescription = publicPageDescription || null
     if (publicPageLogoUrl !== undefined) updateData.publicPageLogoUrl = publicPageLogoUrl || null
     if (dailyBookingLimit !== undefined) {
-      updateData.dailyBookingLimit = dailyBookingLimit || 0
       updateData.maxBookingsPerDayPerClient = dailyBookingLimit || 0 // Синхронизируем с основным полем
     }
     if (notificationsEnabled !== undefined) updateData.notificationsEnabled = notificationsEnabled || false
@@ -290,7 +285,7 @@ export async function PUT(request: NextRequest) {
         maxBookingsPerDayPerClient: updatedTeam.maxBookingsPerDayPerClient,
         masterLimit: updatedTeam.masterLimit,
         webhooksEnabled: updatedTeam.webhooksEnabled,
-        fairMasterRotation: Boolean(updatedTeam.fairMasterRotation), // Явно преобразуем в boolean
+        fairMasterRotation: true,
         privacyPolicyUrl: updatedTeam.privacyPolicyUrl,
         contactPerson: updatedTeam.contactPerson,
         email: updatedTeam.email,
@@ -300,14 +295,12 @@ export async function PUT(request: NextRequest) {
         timezone: updatedTeam.timezone,
         telegramBotToken: updatedTeam.telegramBotToken,
         ungroupedGroupName: (updatedTeam as any).ungroupedGroupName || 'Основные услуги',
-        // publicServiceCardsWithPhotos: updatedTeam.publicServiceCardsWithPhotos,
-        // publicTheme: updatedTeam.publicTheme,
-        // publicPageTitle: (updatedTeam as any).publicPageTitle,
-        // publicPageDescription: (updatedTeam as any).publicPageDescription,
-        // publicPageLogoUrl: (updatedTeam as any).publicPageLogoUrl,
-        // dailyBookingLimit: (updatedTeam as any).dailyBookingLimit,
-        // notificationsEnabled: (updatedTeam as any).notificationsEnabled,
-        // reminderHours: (updatedTeam as any).reminderHours
+        publicPageTitle: (updatedTeam as any).publicPageTitle,
+        publicPageDescription: (updatedTeam as any).publicPageDescription,
+        publicPageLogoUrl: (updatedTeam as any).publicPageLogoUrl,
+        dailyBookingLimit: updatedTeam.maxBookingsPerDayPerClient,
+        notificationsEnabled: (updatedTeam as any).notificationsEnabled,
+        reminderHours: (updatedTeam as any).reminderHours
       }
     })
 

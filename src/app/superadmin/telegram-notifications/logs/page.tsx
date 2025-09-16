@@ -24,6 +24,8 @@ export default function TelegramSendLogsPage() {
   const [teamId, setTeamId] = useState<string>('')
   const [dateFrom, setDateFrom] = useState<string>(() => new Date().toISOString().slice(0, 10))
   const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [timeFrom, setTimeFrom] = useState<string>('00:00')
+  const [timeTo, setTimeTo] = useState<string>('23:59')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,6 +37,8 @@ export default function TelegramSendLogsPage() {
       if (teamId) params.set('teamId', teamId)
       if (dateFrom) params.set('from', dateFrom)
       if (dateTo) params.set('to', dateTo)
+      if (timeFrom) params.set('fromTime', timeFrom)
+      if (timeTo) params.set('toTime', timeTo)
       const res = await fetch(`/api/superadmin/telegram-send-logs?${params.toString()}`, { cache: 'no-store' })
       if (!res.ok) {
         const d = await res.json().catch(()=>({}))
@@ -62,6 +66,18 @@ export default function TelegramSendLogsPage() {
     }
   }
 
+  const resendAll = async () => {
+    if (!confirm('Переотправить все сообщения в выборке?')) return
+    try {
+      for (const l of logs) {
+        await fetch(`/api/superadmin/telegram-send-logs/${l.id}/resend`, { method: 'POST' })
+      }
+      await load()
+    } catch (e) {
+      alert('Ошибка при массовой переотправке')
+    }
+  }
+
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Логи отправки Telegram</h1>
@@ -78,7 +94,16 @@ export default function TelegramSendLogsPage() {
           <label className="block text-xs text-gray-500">По дату</label>
           <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
         </div>
+        <div>
+          <label className="block text-xs text-gray-500">C времени</label>
+          <input type="time" value={timeFrom} onChange={e=>setTimeFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500">По время</label>
+          <input type="time" value={timeTo} onChange={e=>setTimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+        </div>
         <button onClick={load} className="px-3 py-2 bg-blue-600 text-white rounded text-sm">Применить</button>
+        <button onClick={resendAll} className="px-3 py-2 border rounded text-sm">Переотправить всё</button>
       </div>
 
       {error && <div className="text-red-600 mb-3">{error}</div>}

@@ -103,6 +103,7 @@ export default function TelegramQueuePage() {
                 <th className="px-3 py-2 text-left">Статус</th>
                 <th className="px-3 py-2 text-left">Попытки</th>
                 <th className="px-3 py-2 text-left">Ошибка</th>
+                <th className="px-3 py-2 text-right">Действия</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -115,6 +116,19 @@ export default function TelegramQueuePage() {
                   <td className="px-3 py-2">{it.status}</td>
                   <td className="px-3 py-2">{it.attempts}/{it.maxAttempts}</td>
                   <td className="px-3 py-2 truncate max-w-[400px]" title={it.errorMessage || ''}>{it.errorMessage || '—'}</td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      className="px-2 py-1 border rounded text-xs"
+                      onClick={async()=>{
+                        if (!confirm('Убрать задачу из очереди?')) return
+                        const res = await fetch(`/api/superadmin/telegram-queue/${it.id}`, { method: 'DELETE' })
+                        const data = await res.json().catch(()=>({}))
+                        if (!res.ok || !data.success) return alert(data.error || 'Не удалось удалить')
+                        await (async()=>{ const params=new URLSearchParams(); if (status) params.set('status', status); if (teamId) params.set('teamId', teamId); if (dateFrom) params.set('from', dateFrom); if (dateTo) params.set('to', dateTo); const qres = await fetch(`/api/superadmin/telegram-queue?${params.toString()}`, { cache: 'no-store' }); const qdata = await qres.json(); setItems(qdata.items||[]) })()
+                      }}
+                      disabled={it.status==='PROCESSING'}
+                    >Удалить</button>
+                  </td>
                 </tr>
               ))}
             </tbody>

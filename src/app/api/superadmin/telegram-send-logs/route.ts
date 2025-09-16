@@ -37,9 +37,11 @@ export async function GET(request: NextRequest) {
     const teamId = searchParams.get('teamId') || undefined
     const from = searchParams.get('from')
     const to = searchParams.get('to')
+    const fromTime = searchParams.get('fromTime') || '00:00'
+    const toTime = searchParams.get('toTime') || '23:59'
 
-    const start = from ? new Date(from + 'T00:00:00.000Z') : new Date(new Date().toISOString().slice(0,10) + 'T00:00:00.000Z')
-    const end = to ? new Date(to + 'T23:59:59.999Z') : new Date(new Date().toISOString().slice(0,10) + 'T23:59:59.999Z')
+    const start = from ? new Date(`${from}T${fromTime}:00.000Z`) : new Date(new Date().toISOString().slice(0,10) + 'T00:00:00.000Z')
+    const end = to ? new Date(`${to}T${toTime}:59.999Z`) : new Date(new Date().toISOString().slice(0,10) + 'T23:59:59.999Z')
 
     const where: any = { createdAt: { gte: start, lte: end } }
     if (teamId) where.teamId = teamId

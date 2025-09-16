@@ -16,9 +16,9 @@ services:
       # Пример: postgresql://postgres:postgres@postgres:5432/beauty?schema=public
       - DATABASE_URL=${DATABASE_URL}
       - NEXTAUTH_SECRET=your-super-secure-secret-key-for-production-2024
-      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_URL=${APP_URL}
       - JWT_SECRET=your-jwt-secret-for-production-2024
-      - APP_URL=http://localhost:3000
+      - APP_URL=${APP_URL}
       - SUPER_ADMIN_EMAIL=admin@beauty-booking.com
       - SUPER_ADMIN_PASSWORD=admin123
       - UPLOAD_DIR=/tmp/uploads
@@ -46,7 +46,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
-      - APP_URL=${APP_URL:-http://localhost:3000}
+      - APP_URL=${APP_URL}
     depends_on:
       - postgres
     networks:

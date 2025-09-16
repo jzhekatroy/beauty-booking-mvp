@@ -509,28 +509,6 @@ export default function AdminNotificationsRoot() {
                     {broadcastOk && <div className="text-green-700">{broadcastOk}</div>}
                   </div>
                 )}
-
-                {/* Прогресс (заглушка) */}
-                <div className="border rounded-md p-4">
-                  <div className="font-medium mb-2">Прогресс рассылки</div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-2xl font-semibold">0</div>
-                      <div className="text-sm text-gray-600">Всего</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-semibold">0</div>
-                      <div className="text-sm text-gray-600">Отправлено</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-semibold">0</div>
-                      <div className="text-sm text-gray-600">Ошибки</div>
-                    </div>
-                  </div>
-                  <div className="mt-3">
-                    <button type="button" className="px-3 py-2 text-sm border rounded">Экспорт ошибок (CSV)</button>
-                  </div>
-                </div>
               </div>
             </div>
           )}

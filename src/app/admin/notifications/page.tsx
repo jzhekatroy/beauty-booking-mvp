@@ -39,6 +39,7 @@ export default function AdminNotificationsRoot() {
   const [photoUploading, setPhotoUploading] = useState<boolean>(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [helpOpen, setHelpOpen] = useState<boolean>(false)
+  const [helpContext, setHelpContext] = useState<'notifications' | 'broadcast' | null>(null)
 
   const handlePhotoInputChange: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files && e.target.files[0]
@@ -182,15 +183,7 @@ export default function AdminNotificationsRoot() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Уведомления и рассылки</h1>
-        <div className="flex justify-end -mt-4 mb-4">
-          <button
-            type="button"
-            onClick={() => setHelpOpen(true)}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            Справка по переменным
-          </button>
-        </div>
+        
 
         {/* Блок: Уведомления */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -229,7 +222,13 @@ export default function AdminNotificationsRoot() {
                         </div>
                         <div className="mt-3">
                           <label className="block text-sm text-gray-700 mb-1">Текст сообщения отбивки
-                            <span className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-xs cursor-help" title="Доступные переменные: {client_name}, {client_first_name}, {client_last_name}, {team_name}, {service_name}, {service_names}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}">?</span>
+                            <button
+                              type="button"
+                              onClick={() => { setHelpContext('notifications'); setHelpOpen(true) }}
+                              className="ml-2 text-xs text-blue-600 hover:underline"
+                            >
+                              Справка по переменным
+                            </button>
                           </label>
                           <textarea
                             value={postBookingMessage}
@@ -319,7 +318,13 @@ export default function AdminNotificationsRoot() {
                     </div>
                     <div className="mt-3">
                       <label className="block text-sm text-gray-700 mb-1">Текст сообщения напоминания
-                        <span className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-xs cursor-help" title="Доступные переменные: {client_name}, {client_first_name}, {client_last_name}, {team_name}, {service_name}, {service_names}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}">?</span>
+                        <button
+                          type="button"
+                          onClick={() => { setHelpContext('notifications'); setHelpOpen(true) }}
+                          className="ml-2 text-xs text-blue-600 hover:underline"
+                        >
+                          Справка по переменным
+                        </button>
                       </label>
                       <textarea
                         value={reminderMessage}
@@ -383,7 +388,13 @@ export default function AdminNotificationsRoot() {
               <div className="space-y-6">
                 <div className="border rounded-md p-4">
                   <label className="block text-sm text-gray-700 mb-1">Текст сообщения
-                    <span className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-700 text-xs cursor-help" title="В рассылке поддерживаются: {client_name}, {client_first_name}, {client_last_name}, {team_name}">?</span>
+                    <button
+                      type="button"
+                      onClick={() => { setHelpContext('broadcast'); setHelpOpen(true) }}
+                      className="ml-2 text-xs text-blue-600 hover:underline"
+                    >
+                      Справка по переменным
+                    </button>
                   </label>
                   <textarea
                     value={broadcastText}
@@ -542,31 +553,35 @@ export default function AdminNotificationsRoot() {
               <button type="button" onClick={() => setHelpOpen(false)} className="text-gray-500 hover:text-gray-700">✕</button>
             </div>
             <div className="space-y-6 text-sm text-gray-800 max-h-[70vh] overflow-auto">
-              <div>
-                <div className="font-medium mb-1">Отбивка и напоминания</div>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>{`{client_name}`} — имя клиента (фолбэк на @username)</li>
-                  <li>{`{client_first_name}`} — имя</li>
-                  <li>{`{client_last_name}`} — фамилия</li>
-                  <li>{`{team_name}`} — название салона</li>
-                  <li>{`{service_name}`} — услуга (или список услуг)</li>
-                  <li>{`{service_names}`} — список услуг (синоним)</li>
-                  <li>{`{master_name}`} — мастер</li>
-                  <li>{`{booking_date}`} — дата визита (ДД.ММ.ГГГГ в TZ салона)</li>
-                  <li>{`{booking_time}`} — время визита (ЧЧ:ММ в TZ салона)</li>
-                  <li>{`{service_duration_min}`} — длительность услуги (мин)</li>
-                </ul>
-              </div>
-              <div>
-                <div className="font-medium mb-1">Рассылка (массовые сообщения)</div>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>{`{client_name}`} — имя клиента (фолбэк на @username)</li>
-                  <li>{`{client_first_name}`} — имя</li>
-                  <li>{`{client_last_name}`} — фамилия</li>
-                  <li>{`{team_name}`} — название салона</li>
-                </ul>
-                <div className="text-xs text-gray-500 mt-2">В рассылке не поддерживаются переменные бронирования.</div>
-              </div>
+              {helpContext === 'notifications' && (
+                <div>
+                  <div className="font-medium mb-1">Отбивка и напоминания</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>{`{client_name}`} — имя клиента (фолбэк на @username)</li>
+                    <li>{`{client_first_name}`} — имя</li>
+                    <li>{`{client_last_name}`} — фамилия</li>
+                    <li>{`{team_name}`} — название салона</li>
+                    <li>{`{service_name}`} — услуга (или список услуг)</li>
+                    <li>{`{service_names}`} — список услуг (синоним)</li>
+                    <li>{`{master_name}`} — мастер</li>
+                    <li>{`{booking_date}`} — дата визита (ДД.ММ.ГГГГ в TZ салона)</li>
+                    <li>{`{booking_time}`} — время визита (ЧЧ:ММ в TZ салона)</li>
+                    <li>{`{service_duration_min}`} — длительность услуги (мин)</li>
+                  </ul>
+                </div>
+              )}
+              {helpContext === 'broadcast' && (
+                <div>
+                  <div className="font-medium mb-1">Рассылка (массовые сообщения)</div>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>{`{client_name}`} — имя клиента (фолбэк на @username)</li>
+                    <li>{`{client_first_name}`} — имя</li>
+                    <li>{`{client_last_name}`} — фамилия</li>
+                    <li>{`{team_name}`} — название салона</li>
+                  </ul>
+                  <div className="text-xs text-gray-500 mt-2">В рассылке не поддерживаются переменные бронирования.</div>
+                </div>
+              )}
             </div>
             <div className="mt-6 flex justify-end">
               <button type="button" onClick={() => setHelpOpen(false)} className="px-4 py-2 border rounded">Закрыть</button>

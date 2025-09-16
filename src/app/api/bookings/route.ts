@@ -535,7 +535,7 @@ export async function POST(request: NextRequest) {
       orderBy: { startTime: 'asc' }
     })
 
-    // Создаем логи для каждого бронирования
+    // Создаем логи для каждого бронирования и ставим отбивку в очередь (если включена)
     console.log('📊 Total bookings to log:', fullBookings.length)
     for (const booking of fullBookings) {
       if (!booking.clientId) {
@@ -589,6 +589,45 @@ export async function POST(request: NextRequest) {
           }
         })
         console.log('✅ TelegramLog created:', telegramLog.id)
+
+        // Отбивка после оформления бронирования
+        try {
+          const policy = await prisma.teamNotificationPolicy.findUnique({ where: { teamId: team.id } })
+          const policyJson: any = policy?.reminders || {}
+          const enabled = Boolean(policyJson.postBookingEnabled)
+          const messageTemplate = String(policyJson.postBookingMessage || '')
+          const delaySec = Math.max(0, Number(policy?.delayAfterBookingSeconds ?? 60))
+          if (enabled && messageTemplate && booking.client?.telegramId) {
+            const serviceNames = booking.services.map(s => s.service?.name).filter(Boolean)
+            const durationMin = booking.services.reduce((acc, s) => acc + (s.service?.duration || 0), 0) || (booking.endTime.getTime() - booking.startTime.getTime())/60000
+            await prisma.notificationQueue.create({
+              data: {
+                type: 'SEND_MESSAGE',
+                data: {
+                  teamId: team.id,
+                  clientId: booking.clientId!,
+                  message: messageTemplate,
+                  meta: {
+                    source: 'post_booking',
+                    booking: {
+                      startTime: booking.startTime.toISOString(),
+                      serviceName: serviceNames.join(', '),
+                      serviceNames,
+                      serviceDurationMin: Math.round(durationMin),
+                      masterName: `${booking.master.firstName || ''} ${booking.master.lastName || ''}`.trim(),
+                    },
+                  },
+                },
+                executeAt: new Date(Date.now() + delaySec * 1000),
+                status: 'PENDING',
+                attempts: 0,
+                maxAttempts: 3,
+              }
+            })
+          }
+        } catch (enqueueErr) {
+          console.error('⚠️ Failed to enqueue post-booking message', enqueueErr)
+        }
       } catch (error) {
         console.error('❌ Error creating logs for booking:', booking.id, error)
       }

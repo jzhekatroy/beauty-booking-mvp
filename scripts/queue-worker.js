@@ -25,6 +25,58 @@ function toAbsoluteUrl(urlOrPath) {
   }
 }
 
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function formatDateTimeParts(date, timeZone) {
+  try {
+    const d = new Date(date);
+    const fmt = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: timeZone || 'UTC',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+    const parts = Object.fromEntries(fmt.formatToParts(d).map(p => [p.type, p.value]));
+    const booking_date = `${parts.day}.${parts.month}.${parts.year}`;
+    const booking_time = `${parts.hour}:${parts.minute}`;
+    return { booking_date, booking_time };
+  } catch {
+    const dd = pad2(new Date(date).getUTCDate());
+    const mm = pad2(new Date(date).getUTCMonth() + 1);
+    const yy = new Date(date).getUTCFullYear();
+    const hh = pad2(new Date(date).getUTCHours());
+    const mi = pad2(new Date(date).getUTCMinutes());
+    return { booking_date: `${dd}.${mm}.${yy}`, booking_time: `${hh}:${mi}` };
+  }
+}
+
+function buildReplacements(client, team, meta) {
+  const first = (client.firstName || client.telegramFirstName || '').trim();
+  const last = (client.lastName || client.telegramLastName || '').trim();
+  const username = client.telegramUsername ? `@${client.telegramUsername}` : '';
+  const clientName = (first || last) ? `${first} ${last}`.trim() : (username || 'клиент');
+  const teamName = team?.name || 'Салон';
+
+  const booking = meta?.booking || {};
+  const { startTime, serviceName, serviceNames, masterName, serviceDurationMin } = booking;
+  const { booking_date, booking_time } = startTime ? formatDateTimeParts(startTime, team?.timezone) : { booking_date: '', booking_time: '' };
+  const namesJoined = Array.isArray(serviceNames) ? serviceNames.filter(Boolean).join(', ') : '';
+  const singleName = (serviceName || namesJoined || (Array.isArray(serviceNames) ? serviceNames[0] : '') || '').trim();
+  const durationMin = Number.isFinite(Number(serviceDurationMin)) ? String(Number(serviceDurationMin)) : '';
+
+  return {
+    '{client_name}': clientName,
+    '{client_first_name}': first || clientName,
+    '{client_last_name}': last || '',
+    '{team_name}': teamName,
+    '{booking_date}': booking_date,
+    '{booking_time}': booking_time,
+    '{service_name}': singleName,
+    '{service_names}': namesJoined || singleName,
+    '{service_duration_min}': durationMin,
+    '{master_name}': masterName || '',
+  };
+}
+
 async function getLimits() {
   const g = await prisma.globalNotificationSettings.findFirst();
   return {
@@ -75,18 +127,8 @@ async function handleSendMessage(task) {
   if (!client.team?.telegramBotToken) throw new Error('Team bot token missing');
 
   // Templating of variables
-  const first = (client.firstName || client.telegramFirstName || '').trim();
-  const last = (client.lastName || client.telegramLastName || '').trim();
-  const username = client.telegramUsername ? `@${client.telegramUsername}` : '';
-  const clientName = (first || last) ? `${first} ${last}`.trim() : (username || 'клиент');
-  const teamName = client.team?.name || 'Салон';
   let finalText = String(message);
-  const replacements = {
-    '{client_name}': clientName,
-    '{client_first_name}': first || clientName,
-    '{client_last_name}': last || '',
-    '{team_name}': teamName,
-  };
+  const replacements = buildReplacements(client, client.team, meta);
   for (const [key, val] of Object.entries(replacements)) finalText = finalText.split(key).join(val);
 
   const { ok, body } = await sendTelegramMessageViaBot(
@@ -138,18 +180,8 @@ async function handleSendPhoto(task) {
   if (!client.team?.telegramBotToken) throw new Error('Team bot token missing');
 
   // Templating for caption
-  const first = (client.firstName || client.telegramFirstName || '').trim();
-  const last = (client.lastName || client.telegramLastName || '').trim();
-  const username = client.telegramUsername ? `@${client.telegramUsername}` : '';
-  const clientName = (first || last) ? `${first} ${last}`.trim() : (username || 'клиент');
-  const teamName = client.team?.name || 'Салон';
   let finalCaption = String(caption || '');
-  const replacements = {
-    '{client_name}': clientName,
-    '{client_first_name}': first || clientName,
-    '{client_last_name}': last || '',
-    '{team_name}': teamName,
-  };
+  const replacements = buildReplacements(client, client.team, meta);
   for (const [k, v] of Object.entries(replacements)) finalCaption = finalCaption.split(k).join(v);
 
   // Send photo

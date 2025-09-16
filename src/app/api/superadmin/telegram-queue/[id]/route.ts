@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function DELETE(request: NextRequest, context: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, context: any) {
   try {
-    const id = context?.params?.id
+    const id = context?.params?.id as string
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 })
 
     const item = await prisma.notificationQueue.findUnique({ where: { id } })

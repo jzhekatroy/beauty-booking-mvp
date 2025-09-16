@@ -250,7 +250,7 @@ export default function AdminNotificationsRoot() {
                       <div className="mt-3 text-sm text-gray-600">
                         Пример сообщения:
                         <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
-                          {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nМы получили вашу заявку на выбранную услугу к мастеру — держим для вас время ✅\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
+                          {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nМы получили вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
                         </div>
                       </div>
                     </>

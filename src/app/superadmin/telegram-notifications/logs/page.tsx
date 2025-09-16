@@ -28,6 +28,7 @@ export default function TelegramSendLogsPage() {
   const [timeTo, setTimeTo] = useState<string>('23:59')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const load = async () => {
     try {
@@ -46,6 +47,7 @@ export default function TelegramSendLogsPage() {
       }
       const data = await res.json()
       setLogs(data.logs || [])
+      setSelected(new Set())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Неизвестная ошибка')
     } finally {
@@ -66,15 +68,31 @@ export default function TelegramSendLogsPage() {
     }
   }
 
-  const resendAll = async () => {
-    if (!confirm('Переотправить все сообщения в выборке?')) return
+  const toggleSelectAll = () => {
+    setSelected(prev => {
+      if (prev.size === logs.length) return new Set()
+      return new Set(logs.map(l => l.id))
+    })
+  }
+
+  const toggleSelectOne = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const resendSelected = async () => {
+    if (selected.size === 0) return
+    if (!confirm(`Переотправить выбранные (${selected.size})?`)) return
     try {
-      for (const l of logs) {
-        await fetch(`/api/superadmin/telegram-send-logs/${l.id}/resend`, { method: 'POST' })
+      for (const id of selected) {
+        await fetch(`/api/superadmin/telegram-send-logs/${id}/resend`, { method: 'POST' })
       }
       await load()
     } catch (e) {
-      alert('Ошибка при массовой переотправке')
+      alert('Ошибка при переотправке выбранных')
     }
   }
 
@@ -103,7 +121,7 @@ export default function TelegramSendLogsPage() {
           <input type="time" value={timeTo} onChange={e=>setTimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
         </div>
         <button onClick={load} className="px-3 py-2 bg-blue-600 text-white rounded text-sm">Применить</button>
-        <button onClick={resendAll} className="px-3 py-2 border rounded text-sm">Переотправить всё</button>
+        <button onClick={resendSelected} disabled={selected.size===0} className="px-3 py-2 border rounded text-sm disabled:opacity-50">Переотправить выбранные</button>
       </div>
 
       {error && <div className="text-red-600 mb-3">{error}</div>}
@@ -114,6 +132,9 @@ export default function TelegramSendLogsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-3 py-2 text-left w-10">
+                  <input type="checkbox" checked={selected.size===logs.length && logs.length>0} onChange={toggleSelectAll} />
+                </th>
                 <th className="px-3 py-2 text-left">Время</th>
                 <th className="px-3 py-2 text-left">Команда</th>
                 <th className="px-3 py-2 text-left">Клиент</th>
@@ -127,6 +148,9 @@ export default function TelegramSendLogsPage() {
             <tbody className="divide-y">
               {logs.map(l => (
                 <tr key={l.id}>
+                  <td className="px-3 py-2">
+                    <input type="checkbox" checked={selected.has(l.id)} onChange={()=>toggleSelectOne(l.id)} />
+                  </td>
                   <td className="px-3 py-2 whitespace-nowrap">{new Date(l.createdAt).toLocaleString('ru-RU')}</td>
                   <td className="px-3 py-2">{l.teamName || l.teamId}</td>
                   <td className="px-3 py-2">{l.clientName || l.clientId}</td>

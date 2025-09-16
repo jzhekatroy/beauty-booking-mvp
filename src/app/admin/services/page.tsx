@@ -831,50 +831,54 @@ export default function ServicesPage() {
               {ungroupedServices.length === 0 ? (
                 <div className="text-sm text-gray-500">Нет услуг в этой вкладке.</div>
               ) : (
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                  {ungroupedServices.map(service => (
-                    <div key={service.id} className="grid grid-cols-[1fr_auto] gap-3 items-stretch">
-                      {/* Карточка как на публичной странице (предыдущий вариант с 16:9 и оверлеем) */}
-                      <div className={`relative rounded-2xl overflow-hidden border ${service.isArchived ? 'opacity-75' : ''}`}>
-                        <div className="relative w-full">
-                          <div className="pt-[56.25%] bg-gray-100">
-                            {service.photoUrl ? (
-                              <img src={service.photoUrl} alt={service.name} className="absolute inset-0 w-full h-full object-cover" />
-                            ) : (
-                              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-amber-100 via-orange-100 to-pink-100" />
-                            )}
-                          </div>
-                          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
-                            <div className="max-w-[70%] rounded-lg bg-white/60 backdrop-blur px-3 py-2 shadow-sm border border-gray-100 w-fit max-w-[70%]">
-                              <h4 className={`font-medium text-gray-900 text-sm sm:text-base leading-snug line-clamp-2 ${service.isArchived ? 'opacity-60' : ''}`}>{service.name}</h4>
-                              {service.description && (
-                                <p className="mt-0.5 text-xs sm:text-[13px] leading-snug text-gray-600 line-clamp-2">{service.description}</p>
-                              )}
+                <div className="bg-white border rounded-md overflow-hidden">
+                  <ul className="divide-y divide-gray-200">
+                    {ungroupedServices.map(service => (
+                      <li key={service.id}>
+                        <div className="px-4 py-3 sm:px-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0">
+                                {service.photoUrl ? (
+                                  <img className="h-12 w-12 rounded object-cover" src={service.photoUrl} alt={service.name} />
+                                ) : (
+                                  <div className="h-12 w-12 rounded bg-gray-200" />
+                                )}
+                              </div>
+                              <div className="ml-4">
+                                <div className="flex items-center gap-2">
+                                  <p className={`text-sm font-medium text-gray-900 ${service.isArchived ? 'opacity-60' : ''}`}>{service.name}</p>
+                                  <span className="px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">{service.price} ₽</span>
+                                  <span className="px-2 py-0.5 rounded text-xs bg-slate-50 text-slate-700 border border-slate-200 whitespace-nowrap">{formatDurationRu(service.duration)}</span>
+                                </div>
+                                {service.description && (
+                                  <p className="text-sm text-gray-600 mt-1 line-clamp-1">{service.description}</p>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <span className="px-2 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">{service.price} ₽</span>
-                              <span className="px-2 py-1 rounded-full text-xs bg-slate-50 text-slate-700 border border-slate-200 whitespace-nowrap">{formatDurationRu(service.duration)}</span>
+                            <div className="flex items-center space-x-2">
+                              {!service.isArchived && (
+                                <button
+                                  onClick={() => startEditingService(service)}
+                                  className="p-2 text-gray-400 hover:text-blue-600"
+                                  title="Редактировать"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleArchiveService(service.id, service.isArchived)}
+                                className={`p-2 ${service.isArchived ? 'text-gray-400 hover:text-green-600' : 'text-gray-400 hover:text-orange-600'}`}
+                                title={service.isArchived ? 'Восстановить' : 'Архивировать'}
+                              >
+                                {service.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                              </button>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      {/* Колонка действий справа от карточки */}
-                      <div className="flex flex-col items-end justify-center gap-2">
-                        {!service.isArchived && (
-                          <button onClick={() => startEditingService(service)} className="px-3 py-2 text-gray-600 hover:text-blue-700 border rounded-md" title="Редактировать">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleArchiveService(service.id, service.isArchived)}
-                          className={`px-3 py-2 border rounded-md ${service.isArchived ? 'text-gray-600 hover:text-green-700' : 'text-gray-600 hover:text-orange-700'}`}
-                          title={service.isArchived ? 'Восстановить' : 'Архивировать'}
-                        >
-                          {service.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
@@ -908,48 +912,50 @@ export default function ServicesPage() {
                 const list = group?.services || []
                 if (list.length === 0) return (<div className="text-sm text-gray-500">Нет услуг в этой вкладке.</div>)
                 return (
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                    {list.map(service => (
-                      <div key={service.id} className="grid grid-cols-[1fr_auto] gap-3 items-stretch">
-                        <div className={`relative rounded-2xl overflow-hidden border ${service.isArchived ? 'opacity-75' : ''}`}>
-                          <div className="relative w-full">
-                            <div className="pt-[56.25%] bg-gray-100">
-                              {service.photoUrl ? (
-                                <img src={service.photoUrl} alt={service.name} className="absolute inset-0 w-full h-full object-cover" />
-                              ) : (
-                                <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-amber-100 via-orange-100 to-pink-100" />
-                              )}
-                            </div>
-                            <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
-                              <div className="max-w-[70%] rounded-lg bg-white/60 backdrop-blur px-3 py-2 shadow-sm border border-gray-100 w-fit max-w-[70%]">
-                                <h4 className={`font-medium text-gray-900 text-sm sm:text-base leading-snug line-clamp-2 ${service.isArchived ? 'opacity-60' : ''}`}>{service.name}</h4>
-                                {service.description && (
-                                  <p className="mt-0.5 text-xs sm:text-[13px] leading-snug text-gray-600 line-clamp-2">{service.description}</p>
-                                )}
+                  <div className="bg-white border rounded-md overflow-hidden">
+                    <ul className="divide-y divide-gray-200">
+                      {list.map(service => (
+                        <li key={service.id}>
+                          <div className="px-4 py-3 sm:px-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                  {service.photoUrl ? (
+                                    <img className="h-12 w-12 rounded object-cover" src={service.photoUrl} alt={service.name} />
+                                  ) : (
+                                    <div className="h-12 w-12 rounded bg-gray-200" />
+                                  )}
+                                </div>
+                                <div className="ml-4">
+                                  <div className="flex items-center gap-2">
+                                    <p className={`text-sm font-medium text-gray-900 ${service.isArchived ? 'opacity-60' : ''}`}>{service.name}</p>
+                                    <span className="px-2 py-0.5 rounded text-xs bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">{service.price} ₽</span>
+                                    <span className="px-2 py-0.5 rounded text-xs bg-slate-50 text-slate-700 border border-slate-200 whitespace-nowrap">{formatDurationRu(service.duration)}</span>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-sm text-gray-600 mt-1 line-clamp-1">{service.description}</p>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex flex-col items-end gap-2">
-                                <span className="px-2 py-1 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">{service.price} ₽</span>
-                                <span className="px-2 py-1 rounded-full text-xs bg-slate-50 text-slate-700 border border-slate-200 whitespace-nowrap">{formatDurationRu(service.duration)}</span>
+                              <div className="flex items-center space-x-2">
+                                {!service.isArchived && (
+                                  <button onClick={() => startEditingService(service)} className="p-2 text-gray-400 hover:text-blue-600" title="Редактировать">
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleArchiveService(service.id, service.isArchived)}
+                                  className={`p-2 ${service.isArchived ? 'text-gray-400 hover:text-green-600' : 'text-gray-400 hover:text-orange-600'}`}
+                                  title={service.isArchived ? 'Восстановить' : 'Архивировать'}
+                                >
+                                  {service.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
+                                </button>
                               </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex flex-col items-end justify-center gap-2">
-                          {!service.isArchived && (
-                            <button onClick={() => startEditingService(service)} className="px-3 py-2 text-gray-600 hover:text-blue-700 border rounded-md" title="Редактировать">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleArchiveService(service.id, service.isArchived)}
-                            className={`px-3 py-2 border rounded-md ${service.isArchived ? 'text-gray-600 hover:text-green-700' : 'text-gray-600 hover:text-orange-700'}`}
-                            title={service.isArchived ? 'Восстановить' : 'Архивировать'}
-                          >
-                            {service.isArchived ? <ArchiveRestore className="w-4 h-4" /> : <Archive className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )
               })()}

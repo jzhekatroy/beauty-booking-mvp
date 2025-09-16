@@ -176,12 +176,11 @@ export default function AdminNotificationsRoot() {
           </button>
           {openNotifications && (
             <div className="px-6 pb-6">
-              <p className="text-gray-600 mb-4">Настройка автоматических сообщений: задержка после бронирования и до 3 напоминаний перед визитом. Управление шаблонами.</p>
 
               <div className="space-y-6">
-                {/* После бронирования */}
+                {/* Отбивка после бронирования */}
                 <div className="border rounded-md p-4">
-                  <div className="font-medium mb-2">После оформления бронирования</div>
+                  <div className="font-medium mb-2">Отбивка после оформления бронирования</div>
                   <label className="inline-flex items-center gap-2 text-sm mb-3">
                     <input type="checkbox" checked={enablePostBooking} onChange={(e) => setEnablePostBooking(e.target.checked)} />
                     Включить отбивку после оформления бронирования

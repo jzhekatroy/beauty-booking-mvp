@@ -2,14 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import jwt from 'jsonwebtoken'
 
-function getBaseUrl(req: NextRequest): string {
-  const envUrl = process.env.APP_URL
-  if (envUrl) return envUrl.replace(/\/$/, '')
-  const proto = (req.headers.get('x-forwarded-proto') || 'http').split(',')[0].trim()
-  const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || '').split(',')[0].trim()
-  return `${proto}://${host}`
-}
-
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -44,9 +36,17 @@ export async function POST(request: NextRequest) {
     } catch {}
 
     const buttonText: string = (body?.text || 'Онлайн‑запись') as string
-    const baseUrl = getBaseUrl(request)
+    // Используем только APP_URL из окружения и требуем HTTPS
+    const rawAppUrl = (process.env.APP_URL || '').trim()
+    if (!rawAppUrl) {
+      return NextResponse.json({ error: 'APP_URL не настроен на сервере (.env)' }, { status: 400 })
+    }
+    if (!rawAppUrl.startsWith('https://')) {
+      return NextResponse.json({ error: 'APP_URL должен быть HTTPS (требование Telegram)' }, { status: 400 })
+    }
+    const baseUrl = rawAppUrl.replace(/\/$/, '')
     const slug = team.bookingSlug || team.slug
-    const webAppUrl: string = (body?.url || `${baseUrl}/book/${slug}`) as string
+    const webAppUrl: string = `${baseUrl}/book/${slug}`
 
     const tgResponse = await fetch(`https://api.telegram.org/bot${botToken}/setChatMenuButton`, {
       method: 'POST',

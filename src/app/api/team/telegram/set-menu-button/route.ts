@@ -36,17 +36,18 @@ export async function POST(request: NextRequest) {
     } catch {}
 
     const buttonText: string = (body?.text || 'Онлайн‑запись') as string
+    const slug = team.bookingSlug || team.slug
     // Используем только APP_URL из окружения и требуем HTTPS
     const rawAppUrl = (process.env.APP_URL || '').trim()
+    const baseCandidate = rawAppUrl ? rawAppUrl.replace(/\/$/, '') : ''
+    const computedUrl = baseCandidate ? `${baseCandidate}/book/${slug}` : null
     if (!rawAppUrl) {
-      return NextResponse.json({ error: 'APP_URL не настроен на сервере (.env)' }, { status: 400 })
+      return NextResponse.json({ error: 'APP_URL не настроен на сервере (.env)', url: computedUrl }, { status: 400 })
     }
     if (!rawAppUrl.startsWith('https://')) {
-      return NextResponse.json({ error: 'APP_URL должен быть HTTPS (требование Telegram)' }, { status: 400 })
+      return NextResponse.json({ error: 'APP_URL должен быть HTTPS (требование Telegram)', url: computedUrl }, { status: 400 })
     }
-    const baseUrl = rawAppUrl.replace(/\/$/, '')
-    const slug = team.bookingSlug || team.slug
-    const webAppUrl: string = `${baseUrl}/book/${slug}`
+    const webAppUrl: string = computedUrl as string
 
     const tgResponse = await fetch(`https://api.telegram.org/bot${botToken}/setChatMenuButton`, {
       method: 'POST',
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     const tgData = await tgResponse.json()
     if (!tgResponse.ok || !tgData.ok) {
-      return NextResponse.json({ error: tgData?.description || 'Ошибка Telegram API' }, { status: 502 })
+      return NextResponse.json({ error: tgData?.description || 'Ошибка Telegram API', url: webAppUrl }, { status: 502 })
     }
 
     return NextResponse.json({ success: true, result: tgData.result, url: webAppUrl })

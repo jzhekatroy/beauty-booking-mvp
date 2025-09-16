@@ -87,7 +87,10 @@ const TelegramBotSettings: React.FC<TelegramBotSettingsProps> = ({
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${auth}` }
       })
       const data = await resp.json()
-      if (!resp.ok) throw new Error(data?.error || 'Не удалось назначить Mini App')
+      if (!resp.ok) {
+        const urlInfo = data?.url ? ` (url: ${data.url})` : ''
+        throw new Error((data?.error || 'Не удалось назначить Mini App') + urlInfo)
+      }
       setSuccess(`✅ Mini App назначен. Кнопка открывает: ${data.url}`)
     } catch (err: any) {
       setError(err.message)

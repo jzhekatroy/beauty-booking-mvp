@@ -615,6 +615,7 @@ export async function POST(request: NextRequest) {
                       serviceNames,
                       serviceDurationMin: Math.round(durationMin),
                       masterName: `${booking.master.firstName || ''} ${booking.master.lastName || ''}`.trim(),
+                      timezone: (team as any).timezone || 'Europe/Moscow',
                     },
                   },
                 },
@@ -627,6 +628,95 @@ export async function POST(request: NextRequest) {
           }
         } catch (enqueueErr) {
           console.error('⚠️ Failed to enqueue post-booking message', enqueueErr)
+        }
+
+        // Напоминания перед визитом (автопостановка в очередь)
+        try {
+          const policy = await prisma.teamNotificationPolicy.findUnique({ where: { teamId: team.id } })
+          const pjson: any = policy?.reminders || {}
+          const remindersEnabled = Boolean(pjson.remindersEnabled ?? true)
+          const reminderMessage: string = String(pjson.reminderMessage || '')
+          const items: Array<{ hoursBefore: number }> = Array.isArray(pjson.items) ? pjson.items : []
+          const tz = (team as any).timezone || 'Europe/Moscow'
+          const sendOnlyDaytime: boolean = Boolean(pjson.sendOnlyDaytime ?? true)
+          const daytimeFrom: string = String(pjson.daytimeFrom || '09:00')
+          const daytimeTo: string = String(pjson.daytimeTo || '22:00')
+
+          if (remindersEnabled && reminderMessage && booking.client?.telegramId && items.length > 0) {
+            const [fromH, fromM] = daytimeFrom.split(':').map((x: string) => parseInt(x, 10))
+            const [toH, toM] = daytimeTo.split(':').map((x: string) => parseInt(x, 10))
+            const fromMin = fromH * 60 + fromM
+            const toMin = toH * 60 + toM
+
+            for (const it of items.slice(0, 3)) {
+              const hoursBefore = Math.min(72, Math.max(1, Math.floor(Number(it?.hoursBefore ?? 24))))
+              // Базовое время отправки в UTC
+              const desiredUtc = new Date(booking.startTime.getTime() - hoursBefore * 60 * 60 * 1000)
+
+              let executeUtc = desiredUtc
+              if (sendOnlyDaytime) {
+                // Переводим желаемое время в локальное время салона
+                const ds = utcToSalonTime(desiredUtc, tz)
+                const curMin = ds.getUTCHours() * 60 + ds.getUTCMinutes()
+
+                let y = ds.getUTCFullYear()
+                let m = ds.getUTCMonth() + 1
+                let d = ds.getUTCDate()
+                let h = ds.getUTCHours()
+                let mm = ds.getUTCMinutes()
+
+                if (curMin < fromMin) {
+                  // Сдвиг на начало дневного окна текущего дня
+                  h = fromH; mm = fromM
+                } else if (curMin > toMin) {
+                  // Сдвиг на начало дневного окна следующего дня
+                  const next = new Date(Date.UTC(y, (m - 1), d, 0, 0, 0, 0))
+                  next.setUTCDate(next.getUTCDate() + 1)
+                  y = next.getUTCFullYear(); m = next.getUTCMonth() + 1; d = next.getUTCDate()
+                  h = fromH; mm = fromM
+                }
+
+                executeUtc = createDateInSalonTimezone(y, m, d, h, mm, tz)
+              }
+
+              // Если получилось в прошлом — отправим как можно скорее
+              if (executeUtc.getTime() < Date.now()) {
+                executeUtc = new Date(Date.now() + 5000)
+              }
+
+              const serviceNames = booking.services.map(s => s.service?.name).filter(Boolean)
+              const durationMin = booking.services.reduce((acc, s) => acc + (s.service?.duration || 0), 0) || (booking.endTime.getTime() - booking.startTime.getTime())/60000
+
+              await prisma.notificationQueue.create({
+                data: {
+                  type: 'SEND_MESSAGE',
+                  data: {
+                    teamId: team.id,
+                    clientId: booking.clientId!,
+                    message: reminderMessage,
+                    meta: {
+                      source: 'reminder_pre_visit',
+                      hoursBefore,
+                      booking: {
+                        startTime: booking.startTime.toISOString(),
+                        serviceName: serviceNames.join(', '),
+                        serviceNames,
+                        serviceDurationMin: Math.round(durationMin),
+                        masterName: `${booking.master.firstName || ''} ${booking.master.lastName || ''}`.trim(),
+                        timezone: tz,
+                      },
+                    },
+                  },
+                  executeAt: executeUtc,
+                  status: 'PENDING',
+                  attempts: 0,
+                  maxAttempts: 3,
+                }
+              })
+            }
+          }
+        } catch (remErr) {
+          console.error('⚠️ Failed to enqueue reminder messages', remErr)
         }
       } catch (error) {
         console.error('❌ Error creating logs for booking:', booking.id, error)

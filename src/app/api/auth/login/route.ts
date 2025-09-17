@@ -99,6 +99,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Блокируем вход, если e-mail не подтверждён
+    if (!user.emailVerifiedAt) {
+      return NextResponse.json(
+        { error: 'Email не подтверждён', verificationRequired: true },
+        { status: 403 }
+      )
+    }
+
     // Проверка пароля
     const isPasswordValid = await verifyPassword(password, user.password)
     if (!isPasswordValid) {

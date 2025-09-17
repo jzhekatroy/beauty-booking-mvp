@@ -11,6 +11,10 @@ export default function LoginPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [needVerify, setNeedVerify] = useState(false)
+  const [code, setCode] = useState('')
+  const [verifyLoading, setVerifyLoading] = useState(false)
+  const [info, setInfo] = useState('')
   const router = useRouter()
 
   // Если уже авторизован — перекидываем в админку
@@ -47,7 +51,12 @@ export default function LoginPage() {
         // Всех ведём в /admin; доступ к /superadmin проверяется отдельно
         router.push('/admin')
       } else {
-        setError(data.error || 'Ошибка входа')
+        if (response.status === 403 && data?.verificationRequired) {
+          setNeedVerify(true)
+          setInfo('Мы отправили код подтверждения на почту. Введите его ниже.')
+        } else {
+          setError(data.error || 'Ошибка входа')
+        }
       }
     } catch (error) {
       setError('Ошибка соединения с сервером')
@@ -85,7 +94,13 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+          {info && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md mb-4">
+              {info}
+            </div>
+          )}
 
+          {!needVerify ? (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -127,6 +142,61 @@ export default function LoginPage() {
               {isLoading ? 'Вход...' : 'Войти'}
             </button>
           </form>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Код подтверждения (6 цифр)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e)=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent tracking-widest"
+                  placeholder="123456"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={verifyLoading || code.length!==6}
+                onClick={async ()=>{
+                  setVerifyLoading(true); setError(''); setInfo('')
+                  try {
+                    const res = await fetch('/api/auth/verify-email', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ email: formData.email, code })
+                    })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data?.error || 'Неверный код')
+                    setInfo('Email подтверждён. Теперь можете войти.')
+                    setNeedVerify(false)
+                  } catch (e:any) {
+                    setError(e?.message || 'Ошибка подтверждения')
+                  } finally {
+                    setVerifyLoading(false)
+                  }
+                }}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition duration-200"
+              >{verifyLoading ? 'Проверяем…' : 'Подтвердить'}</button>
+              <button
+                type="button"
+                className="w-full border hover:bg-gray-50 text-gray-800 font-medium py-2 px-4 rounded-md transition duration-200"
+                onClick={async ()=>{
+                  try {
+                    const res = await fetch('/api/auth/resend-email-code', {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: formData.email })
+                    })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data?.error || 'Ошибка отправки кода')
+                    setInfo('Код отправлен повторно')
+                  } catch (e:any) {
+                    setError(e?.message || 'Ошибка отправки кода')
+                  }
+                }}
+              >Отправить код ещё раз</button>
+            </div>
+          )}
 
           <div className="mt-6 text-center space-y-2">
             <div className="text-sm text-gray-600">

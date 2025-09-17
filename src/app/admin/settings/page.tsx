@@ -38,9 +38,17 @@ export default function SettingsPage() {
   const [openTelegram, setOpenTelegram] = useState(false)
   const [openTimezone, setOpenTimezone] = useState(false)
   const [openBookingPage, setOpenBookingPage] = useState(false)
+  // email verification UI
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendMsg, setResendMsg] = useState<string | null>(null)
+  const [code, setCode] = useState('')
+  const [verifyLoading, setVerifyLoading] = useState(false)
+  const [verifyMsg, setVerifyMsg] = useState<string | null>(null)
 
   useEffect(() => {
     loadSettings()
+    loadMe()
   }, [])
 
   const loadSettings = async () => {
@@ -68,6 +76,18 @@ export default function SettingsPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const loadMe = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+      const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
+      const data = await res.json()
+      if (res.ok) {
+        setEmailVerified(Boolean(data.emailVerified))
+      }
+    } catch {}
   }
 
   const updateBookingSlug = async (bookingSlug: string) => {
@@ -219,7 +239,79 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.email}</div>
+                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800 flex items-center justify-between">
+                      <span>{settings.email}</span>
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${emailVerified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {emailVerified ? 'Подтверждён' : 'Не подтверждён'}
+                        </span>
+                        <button
+                          type="button"
+                          className="px-3 py-1 text-xs border rounded hover:bg-gray-100 disabled:opacity-50"
+                          disabled={resendLoading}
+                          onClick={async ()=>{
+                            setResendLoading(true); setResendMsg(null)
+                            try {
+                              const res = await fetch('/api/auth/resend-email-code', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: settings.email })
+                              })
+                              const data = await res.json()
+                              if (!res.ok) throw new Error(data?.error || 'Ошибка отправки кода')
+                              setResendMsg('Код отправлен на почту')
+                            } catch (e:any) {
+                              setResendMsg(e?.message || 'Ошибка отправки кода')
+                            } finally {
+                              setResendLoading(false)
+                            }
+                          }}
+                        >{resendLoading ? 'Отправляем…' : 'Отправить код'}</button>
+                      </div>
+                    </div>
+                    {resendMsg && (
+                      <div className="mt-1 text-xs text-gray-600">{resendMsg}</div>
+                    )}
+                    {!emailVerified && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={code}
+                          onChange={(e)=>setCode(e.target.value.replace(/\D/g, '').slice(0,6))}
+                          placeholder="Введите 6-значный код"
+                          className="px-3 py-2 border rounded text-sm w-44 tracking-widest"
+                        />
+                        <button
+                          type="button"
+                          className="px-3 py-2 text-sm bg-blue-600 text-white rounded disabled:opacity-50"
+                          disabled={verifyLoading || code.length!==6}
+                          onClick={async ()=>{
+                            setVerifyLoading(true); setVerifyMsg(null)
+                            try {
+                              const res = await fetch('/api/auth/verify-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: settings.email, code })
+                              })
+                              const data = await res.json()
+                              if (!res.ok) throw new Error(data?.error || 'Неверный код')
+                              setVerifyMsg('Email подтверждён')
+                              setEmailVerified(true)
+                              setCode('')
+                            } catch (e:any) {
+                              setVerifyMsg(e?.message || 'Ошибка подтверждения')
+                            } finally {
+                              setVerifyLoading(false)
+                            }
+                          }}
+                        >{verifyLoading ? 'Проверяем…' : 'Подтвердить'}</button>
+                      </div>
+                    )}
+                    {verifyMsg && (
+                      <div className="mt-1 text-xs text-gray-600">{verifyMsg}</div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Лимит мастеров</label>

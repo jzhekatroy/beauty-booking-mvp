@@ -143,6 +143,7 @@ model User {
   lastName    String?
   isActive    Boolean   @default(true)
   lastLoginAt DateTime?
+  emailVerifiedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -153,6 +154,7 @@ model User {
   bookingLogs BookingLog[]
   teamLogs    TeamLog[]
   loginLogs   UserLoginLog[]
+  emailVerificationCodes EmailVerificationCode[]
 
   @@map("users")
 }
@@ -705,5 +707,20 @@ model BroadcastCampaign {
 
   @@index([teamId, status])
   @@map("broadcast_campaigns")
+}
+
+// Коды подтверждения e-mail
+model EmailVerificationCode {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash    String   @map("code_hash")
+  expiresAt   DateTime @map("expires_at")
+  sentAt      DateTime @default(now()) @map("sent_at")
+  consumedAt  DateTime? @map("consumed_at")
+  attempts    Int      @default(0)
+
+  @@index([userId, expiresAt])
+  @@map("email_verification_codes")
 }
 

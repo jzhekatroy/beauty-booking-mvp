@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       id: userWithoutPassword.id,
       email: userWithoutPassword.email,
       role: userWithoutPassword.role,
+      emailVerified: Boolean((userWithoutPassword as any).emailVerifiedAt),
       firstName: userWithoutPassword.firstName,
       lastName: userWithoutPassword.lastName,
       impersonatedBy: (decoded as any).impersonatedBy || null,

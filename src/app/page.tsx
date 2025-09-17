@@ -194,10 +194,10 @@ export default function HomePage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Сохраняем токен в localStorage
-        localStorage.setItem('token', data.token)
-        // Перенаправляем в админку команды
-        router.push('/admin')
+        // Не логиним автоматически: требуем подтверждение email
+        setError('')
+        alert('Мы отправили код подтверждения на вашу почту. Введите его на странице входа.')
+        router.push('/login')
       } else {
         setError(data.error || 'Ошибка регистрации')
       }

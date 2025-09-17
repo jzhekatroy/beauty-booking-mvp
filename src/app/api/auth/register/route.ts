@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { hashPassword, generateTeamNumber, generateToken } from '@/lib/auth'
+import crypto from 'crypto'
+import { sendMail } from '@/lib/mailer'
 import { UserRole } from '@/lib/enums'
 
 export async function POST(request: NextRequest) {
@@ -82,6 +84,31 @@ export async function POST(request: NextRequest) {
       return { team, user }
     })
 
+    // Generate 6-digit code and save hashed, TTL 30 minutes
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex')
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
+    try {
+      await prisma.emailVerificationCode.create({
+        data: {
+          userId: result.user.id,
+          codeHash,
+          expiresAt,
+        }
+      })
+    } catch {}
+
+    // Send verification email (best-effort)
+    try {
+      await sendMail({
+        to: result.user.email,
+        subject: 'Код подтверждения e‑mail',
+        text: `Ваш код подтверждения: ${code}. Срок действия 30 минут.`,
+      })
+    } catch (e) {
+      console.error('Send verification email error:', e)
+    }
+
     // Генерация токена
     const token = generateToken({
       userId: result.user.id,
@@ -104,7 +131,9 @@ export async function POST(request: NextRequest) {
         email: result.user.email,
         role: result.user.role,
         firstName: result.user.firstName,
-      }
+        emailVerified: false,
+      },
+      verificationRequired: true
     })
 
   } catch (error) {

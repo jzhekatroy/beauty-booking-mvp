@@ -21,7 +21,7 @@ export default function ForgotPasswordPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error || 'Ошибка отправки кода')
-      setInfo('Если e‑mail подтверждён, код отправлен. Проверьте почту')
+      setInfo('Код отправлен. Проверьте почту')
       setStep(2)
     } catch (e:any) {
       setError(e?.message || 'Ошибка отправки кода')

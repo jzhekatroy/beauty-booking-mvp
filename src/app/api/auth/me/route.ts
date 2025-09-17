@@ -50,16 +50,16 @@ export async function GET(request: NextRequest) {
       firstName: userWithoutPassword.firstName,
       lastName: userWithoutPassword.lastName,
       impersonatedBy: (decoded as any).impersonatedBy || null,
-      team: {
-        id: userWithoutPassword.team.id,
-        name: userWithoutPassword.team.name,
-        teamNumber: userWithoutPassword.team.teamNumber,
-        slug: userWithoutPassword.team.slug,
-        bookingSlug: userWithoutPassword.team.bookingSlug
-      }
+    team: userWithoutPassword.team ? {
+      id: userWithoutPassword.team.id,
+      name: userWithoutPassword.team.name,
+      teamNumber: userWithoutPassword.team.teamNumber,
+      slug: userWithoutPassword.team.slug,
+      bookingSlug: userWithoutPassword.team.bookingSlug
+    } : null
     })
   } catch (error) {
-    console.error('Ошибка получения данных пользователя:', error)
-    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
+  try { console.error('Ошибка получения данных пользователя:', error) } catch {}
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 }

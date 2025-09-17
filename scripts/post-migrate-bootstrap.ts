@@ -30,6 +30,25 @@ async function ensureGlobalNotificationSettings(): Promise<void> {
 async function main() {
   console.log('🔧 Post-migrate bootstrap: старт')
   await ensureGlobalNotificationSettings()
+  // Ensure email verification schema (self-healing for prod)
+  try {
+    await prisma.$executeRawUnsafe('ALTER TABLE public.users ADD COLUMN IF NOT EXISTS "emailVerifiedAt" timestamptz NULL;')
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS public.email_verification_codes (
+        id text PRIMARY KEY,
+        user_id text NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+        code_hash text NOT NULL,
+        expires_at timestamptz NOT NULL,
+        sent_at timestamptz NOT NULL DEFAULT now(),
+        consumed_at timestamptz NULL,
+        attempts int NOT NULL DEFAULT 0
+      );
+    `)
+    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS evc_user_id_expires_idx ON public.email_verification_codes (user_id, expires_at);')
+    console.log('✅ Email verification schema ensured')
+  } catch (e) {
+    console.error('❌ Failed to ensure email verification schema', e)
+  }
   console.log('🎉 Post-migrate bootstrap: завершено успешно')
 }
 

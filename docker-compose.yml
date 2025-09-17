@@ -19,6 +19,13 @@ services:
       - NEXTAUTH_URL=${APP_URL}
       - JWT_SECRET=your-jwt-secret-for-production-2024
       - APP_URL=${APP_URL}
+      # SMTP for emails
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_SECURE=${SMTP_SECURE}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - MAIL_FROM=${MAIL_FROM}
       - SUPER_ADMIN_EMAIL=admin@beauty-booking.com
       - SUPER_ADMIN_PASSWORD=admin123
       - UPLOAD_DIR=/tmp/uploads

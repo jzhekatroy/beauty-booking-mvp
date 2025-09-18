@@ -7,7 +7,6 @@ import TimezoneSettings from '@/components/TimezoneSettings'
 import TelegramBotSettings from '@/components/TelegramBotSettings'
 import LogoUpload from '@/components/LogoUpload'
 import { useRouter } from 'next/navigation'
-import ChangePasswordForm from '@/components/ChangePasswordForm'
 
 interface TeamSettings {
   bookingStep: number

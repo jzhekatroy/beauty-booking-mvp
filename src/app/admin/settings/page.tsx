@@ -6,6 +6,8 @@ import BookingLinkSettings from '@/components/BookingLinkSettings'
 import TimezoneSettings from '@/components/TimezoneSettings'
 import TelegramBotSettings from '@/components/TelegramBotSettings'
 import LogoUpload from '@/components/LogoUpload'
+import { useRouter } from 'next/navigation'
+import ChangePasswordForm from '@/components/ChangePasswordForm'
 
 interface TeamSettings {
   bookingStep: number
@@ -30,6 +32,7 @@ interface TeamSettings {
 }
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [settings, setSettings] = useState<TeamSettings | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,6 +56,47 @@ export default function SettingsPage() {
   const [changeCode, setChangeCode] = useState('')
   const [changeLoading, setChangeLoading] = useState(false)
   const [changeMsg, setChangeMsg] = useState<string | null>(null)
+
+  const ChangePasswordForm = () => {
+    const [currentPassword, setCurrentPassword] = useState('')
+    const [newPassword, setNewPassword] = useState('')
+    const [repeatPassword, setRepeatPassword] = useState('')
+    const [cpLoading, setCpLoading] = useState(false)
+    const [cpMsg, setCpMsg] = useState<string | null>(null)
+    const disabled = cpLoading || !currentPassword || newPassword.length < 6 || newPassword !== repeatPassword
+    return (
+      <div className="space-y-2">
+        <input type="password" value={currentPassword} onChange={(e)=>setCurrentPassword(e.target.value)} placeholder="Текущий пароль" className="w-full px-3 py-2 border rounded text-sm" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <input type="password" value={newPassword} onChange={(e)=>setNewPassword(e.target.value)} placeholder="Новый пароль (мин. 6)" className="w-full px-3 py-2 border rounded text-sm" />
+          <input type="password" value={repeatPassword} onChange={(e)=>setRepeatPassword(e.target.value)} placeholder="Подтверждение пароля" className="w-full px-3 py-2 border rounded text-sm" />
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={async ()=>{
+              setCpLoading(true); setCpMsg(null)
+              try {
+                const token = localStorage.getItem('token')
+                const res = await fetch('/api/auth/change-password', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ currentPassword, newPassword })
+                })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data?.error || 'Ошибка смены пароля')
+                setCpMsg('Пароль изменён')
+                setCurrentPassword(''); setNewPassword(''); setRepeatPassword('')
+              } catch (e:any) {
+                setCpMsg(e?.message || 'Ошибка смены пароля')
+              } finally { setCpLoading(false) }
+            }}
+            className="px-3 py-2 bg-blue-600 text-white rounded text-sm disabled:opacity-50"
+          >{cpLoading ? 'Сохраняем…' : 'Сменить пароль'}</button>
+          {cpMsg && <span className="text-xs text-gray-600">{cpMsg}</span>}
+        </div>
+      </div>
+    )
+  }
 
   useEffect(() => {
     loadSettings()
@@ -247,9 +291,9 @@ export default function SettingsPage() {
                     <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.contactPerson}</div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email для входа</label>
                     <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800 flex items-center justify-between">
-                      <span>{settings.email}</span>
+                      <span>{meEmail || settings.email}</span>
                       <div className="flex items-center gap-3">
                         <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${emailVerified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {emailVerified ? 'Подтверждён' : 'Не подтверждён'}
@@ -304,7 +348,7 @@ export default function SettingsPage() {
                               const res = await fetch('/api/auth/verify-email', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: settings.email, code })
+                                body: JSON.stringify({ email: meEmail || settings.email, code })
                               })
                               const data = await res.json()
                               if (!res.ok) throw new Error(data?.error || 'Неверный код')
@@ -402,13 +446,10 @@ export default function SettingsPage() {
                       )}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Лимит мастеров</label>
-                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.masterLimit}</div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Интервал бронирования</label>
-                    <div className="p-3 bg-gray-50 rounded-md border text-sm text-gray-800">{settings.bookingStep} минут</div>
+                  {/* Change password */}
+                  <div className="md:col-span-2 mt-4">
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Смена пароля</h4>
+                    <ChangePasswordForm />
                   </div>
                 </div>
                 {settings.privacyPolicyUrl && (

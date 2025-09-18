@@ -68,7 +68,7 @@ export default function ClientsPage() {
       if (res.status === 401) {
         // Токен недействителен, перенаправляем на страницу входа
         localStorage.removeItem('token')
-        window.location.href = '/admin/login'
+        window.location.href = '/login'
         return
       }
       
@@ -486,7 +486,7 @@ function ClientDrawer({ id, onClose }: { id: string; onClose: () => void }) {
       if (res.status === 401) {
         // Токен недействителен, перенаправляем на страницу входа
         localStorage.removeItem('token')
-        window.location.href = '/admin/login'
+        window.location.href = '/login'
         return
       }
       

@@ -31,7 +31,15 @@ export async function POST(request: NextRequest) {
     })
     if (!adminUser) return NextResponse.json({ error: 'У команды нет администратора' }, { status: 400 })
 
-    const impersonationPayload = { userId: adminUser.id, impersonatedBy: me.id }
+    // Формируем полноценный JWTPayload, как при обычном логине,
+    // чтобы downstream-эндпоинты видели teamId/role/email
+    const impersonationPayload: any = {
+      userId: adminUser.id,
+      email: adminUser.email,
+      role: adminUser.role,
+      teamId: adminUser.teamId,
+      impersonatedBy: me.id,
+    }
     const impersonationToken = jwt.sign(impersonationPayload, process.env.JWT_SECRET!, { expiresIn: '1h' })
 
     return NextResponse.json({ token: impersonationToken })

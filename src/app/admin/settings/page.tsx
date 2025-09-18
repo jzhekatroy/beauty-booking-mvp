@@ -40,11 +40,19 @@ export default function SettingsPage() {
   const [openBookingPage, setOpenBookingPage] = useState(false)
   // email verification UI
   const [emailVerified, setEmailVerified] = useState<boolean | null>(null)
+  const [meEmail, setMeEmail] = useState<string | null>(null)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendMsg, setResendMsg] = useState<string | null>(null)
   const [code, setCode] = useState('')
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [verifyMsg, setVerifyMsg] = useState<string | null>(null)
+  // change email UI
+  const [changeOpen, setChangeOpen] = useState(false)
+  const [newEmail, setNewEmail] = useState('')
+  const [changeSent, setChangeSent] = useState(false)
+  const [changeCode, setChangeCode] = useState('')
+  const [changeLoading, setChangeLoading] = useState(false)
+  const [changeMsg, setChangeMsg] = useState<string | null>(null)
 
   useEffect(() => {
     loadSettings()
@@ -86,6 +94,7 @@ export default function SettingsPage() {
       const data = await res.json()
       if (res.ok) {
         setEmailVerified(Boolean(data.emailVerified))
+        setMeEmail(data.email || null)
       }
     } catch {}
   }
@@ -245,6 +254,7 @@ export default function SettingsPage() {
                         <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${emailVerified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                           {emailVerified ? 'Подтверждён' : 'Не подтверждён'}
                         </span>
+                        {!emailVerified && (
                         <button
                           type="button"
                           className="px-3 py-1 text-xs border rounded hover:bg-gray-100 disabled:opacity-50"
@@ -255,7 +265,7 @@ export default function SettingsPage() {
                               const res = await fetch('/api/auth/resend-email-code', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ email: settings.email })
+                                body: JSON.stringify({ email: meEmail || settings.email })
                               })
                               const data = await res.json()
                               if (!res.ok) throw new Error(data?.error || 'Ошибка отправки кода')
@@ -267,6 +277,7 @@ export default function SettingsPage() {
                             }
                           }}
                         >{resendLoading ? 'Отправляем…' : 'Отправить код'}</button>
+                        )}
                       </div>
                     </div>
                     {resendMsg && (
@@ -312,6 +323,84 @@ export default function SettingsPage() {
                     {verifyMsg && (
                       <div className="mt-1 text-xs text-gray-600">{verifyMsg}</div>
                     )}
+                    {/* Change login email */}
+                    <div className="mt-4">
+                      <button
+                        type="button"
+                        className="text-xs underline text-blue-600"
+                        onClick={()=>{ setChangeOpen(!changeOpen); setChangeMsg(null) }}
+                      >{changeOpen ? 'Скрыть смену e‑mail' : 'Сменить e‑mail для входа'}</button>
+                      {changeOpen && (
+                        <div className="mt-3 space-y-2">
+                          <input
+                            type="email"
+                            value={newEmail}
+                            onChange={(e)=>setNewEmail(e.target.value)}
+                            placeholder="new@email.com"
+                            className="w-full px-3 py-2 border rounded text-sm"
+                          />
+                          {!changeSent ? (
+                            <button
+                              type="button"
+                              disabled={changeLoading || !newEmail}
+                              onClick={async ()=>{
+                                setChangeLoading(true); setChangeMsg(null)
+                                try {
+                                  const token = localStorage.getItem('token')
+                                  const res = await fetch('/api/auth/change-email/request', {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ newEmail })
+                                  })
+                                  const data = await res.json()
+                                  if (!res.ok) throw new Error(data?.error || 'Ошибка отправки кода')
+                                  setChangeSent(true)
+                                  setChangeMsg('Код отправлен на новую почту')
+                                } catch (e:any) {
+                                  setChangeMsg(e?.message || 'Ошибка отправки кода')
+                                } finally { setChangeLoading(false) }
+                              }}
+                              className="px-3 py-2 bg-blue-600 text-white rounded text-sm disabled:opacity-50"
+                            >{changeLoading ? 'Отправляем…' : 'Отправить код'}</button>
+                          ) : (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={6}
+                                value={changeCode}
+                                onChange={(e)=>setChangeCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+                                placeholder="Код из письма (6 цифр)"
+                                className="w-full px-3 py-2 border rounded text-sm tracking-widest"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  disabled={changeLoading || changeCode.length!==6}
+                                  onClick={async ()=>{
+                                    setChangeLoading(true); setChangeMsg(null)
+                                    try {
+                                      const token = localStorage.getItem('token')
+                                      const res = await fetch('/api/auth/change-email/confirm', {
+                                        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ newEmail, code: changeCode })
+                                      })
+                                      const data = await res.json()
+                                      if (!res.ok) throw new Error(data?.error || 'Ошибка подтверждения')
+                                      setChangeMsg('Email изменён и подтверждён')
+                                      setMeEmail(newEmail)
+                                      setEmailVerified(true)
+                                    } catch (e:any) {
+                                      setChangeMsg(e?.message || 'Ошибка подтверждения')
+                                    } finally { setChangeLoading(false) }
+                                  }}
+                                  className="px-3 py-2 bg-blue-600 text-white rounded text-sm disabled:opacity-50"
+                                >Подтвердить</button>
+                                <button type="button" onClick={()=>{ setChangeSent(false); setChangeCode(''); setChangeMsg(null) }} className="px-3 py-2 border rounded text-sm">Отправить код ещё раз</button>
+                              </div>
+                            </div>
+                          )}
+                          {changeMsg && <div className="text-xs text-gray-600">{changeMsg}</div>}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Лимит мастеров</label>

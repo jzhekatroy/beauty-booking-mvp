@@ -6,16 +6,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { email, password } = body
+    const normalizedEmail = String(email || '').trim().toLowerCase()
     const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || request.headers.get('x-client-ip') || null
     const userAgent = request.headers.get('user-agent') || null
 
     // Валидация
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       // Логируем неуспешную попытку входа (валидация)
       try {
         await prisma.userLoginLog.create({
           data: {
-            email: email || '',
+            email: normalizedEmail || '',
             success: false,
             failureReason: 'VALIDATION_ERROR',
             ip: ip || undefined,
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Поиск пользователя
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       include: {
         team: true,
         master: true,
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       try {
         await prisma.userLoginLog.create({
           data: {
-            email,
+            email: normalizedEmail,
             success: false,
             failureReason: 'USER_NOT_FOUND',
             ip: ip || undefined,
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       try {
         await prisma.userLoginLog.create({
           data: {
-            email,
+            email: normalizedEmail,
             userId: user.id,
             teamId: user.teamId,
             success: false,

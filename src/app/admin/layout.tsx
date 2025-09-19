@@ -164,12 +164,6 @@ export default function AdminLayout({
             <div className="flex items-center space-x-4">
               {/* User info and logout */}
               <div className="flex items-center space-x-3">
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user.firstName} {user.lastName}
-                  </p>
-                  <p className="text-xs text-gray-500">{user.role === 'ADMIN' ? 'Администратор' : 'Мастер'}</p>
-                </div>
                 <button
                   onClick={handleLogout}
                   className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"

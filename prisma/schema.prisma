@@ -657,13 +657,6 @@ model TeamNotificationPolicy {
   // До 3 напоминаний перед визитом. Храним как JSON: [{ hoursBefore: 24, templateId: '...' }]
   reminders                  Json     @default("[]")
 
-  // Telegram rate limiting per team
-  telegramRatePerMinute      Int      @default(25) @map("telegram_rate_per_minute")
-  // Telegram per-chat limit (сообщений в минуту на один чат)
-  telegramPerChatPerMinute   Int      @default(15) @map("telegram_per_chat_per_minute")
-  // Максимум параллельных отправок для команды (воркер и так 1, но оставляем на будущее)
-  maxConcurrentSends         Int      @default(1)  @map("max_concurrent_sends")
-
   createdAt                  DateTime @default(now()) @map("created_at")
   updatedAt                  DateTime @updatedAt @map("updated_at")
 

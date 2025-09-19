@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     if (!settings) {
       settings = await prisma.globalNotificationSettings.create({
         data: {
-          maxRequestsPerMinute: 25,
+          maxRequestsPerMinute: 0,
           requestDelayMs: 2000,
           maxRetryAttempts: 3,
           retryDelayMs: 5000,
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
       settings = await prisma.globalNotificationSettings.update({
         where: { id: settings.id },
         data: {
-          maxRequestsPerMinute: 25,
+          maxRequestsPerMinute: 0,
           requestDelayMs: 2000,
           maxRetryAttempts: 3,
           retryDelayMs: 5000,
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
     } else {
       settings = await prisma.globalNotificationSettings.create({
         data: {
-          maxRequestsPerMinute: 25,
+          maxRequestsPerMinute: 0,
           requestDelayMs: 2000,
           maxRetryAttempts: 3,
           retryDelayMs: 5000,

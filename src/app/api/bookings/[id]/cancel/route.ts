@@ -108,8 +108,8 @@ export async function POST(
           )
           if (enabled) {
             // Собираем метаданные для подстановок
-            const serviceNames = (full.services || []).map(s => s.service?.name).filter(Boolean)
-            const durationMin = (full.services || []).reduce((acc, s) => acc + (s.service?.duration || 0), 0) || Math.round((full.endTime.getTime() - full.startTime.getTime())/60000)
+            const serviceNames = (full.services || []).map((s: any) => s.service?.name).filter(Boolean)
+            const durationMin = (full.services || []).reduce((acc: number, s: any) => acc + (s.service?.duration || 0), 0) || Math.round((full.endTime.getTime() - full.startTime.getTime())/60000)
             await tx.notificationQueue.create({
               data: {
                 type: 'SEND_MESSAGE',

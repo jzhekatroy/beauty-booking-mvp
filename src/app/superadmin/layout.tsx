@@ -86,9 +86,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             <li>
               <Link href="/superadmin/email-logs" className="block px-3 py-2 rounded hover:bg-gray-50 text-gray-700">📧 Логи писем</Link>
             </li>
-            <li>
-              <Link href="/superadmin/notifications/settings" className="block px-3 py-2 rounded hover:bg-gray-50 text-gray-700">🔔 Настройки команд</Link>
-            </li>
+            
             <li>
               <Link href="/db-viewer" className="block px-3 py-2 rounded hover:bg-gray-50 text-gray-700">🗄️ База данных</Link>
             </li>

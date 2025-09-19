@@ -90,6 +90,57 @@ export async function POST(
         })
       }
 
+      // Уведомление клиенту при отмене брони салоном (только если была NEW/CONFIRMED)
+      try {
+        const full = await tx.booking.findUnique({
+          where: { id },
+          include: { client: true, master: true, team: true, services: { include: { service: true } } }
+        })
+        if (full?.client?.telegramId && (full.status === 'CANCELLED_BY_SALON')) {
+          const policy = await tx.teamNotificationPolicy.findUnique({ where: { teamId: user.teamId } })
+          const pjson: any = policy?.reminders || {}
+          const enabled = Boolean(pjson.cancelBySalonEnabled ?? false)
+          const message = String(pjson.cancelBySalonMessage || '').trim() || (
+            'Уважаемый клиент, {client_name}!\n\n' +
+            'К сожалению, ваша запись в салон {team_name} на услугу {service_name} к мастеру {master_name}\n' +
+            'Дата и время: {booking_date} в {booking_time} (длительность ~{service_duration_min} мин) ⏱️\n' +
+            'отменена салоном. Пожалуйста, выберите другое удобное время для новой записи.'
+          )
+          if (enabled) {
+            // Собираем метаданные для подстановок
+            const serviceNames = (full.services || []).map(s => s.service?.name).filter(Boolean)
+            const durationMin = (full.services || []).reduce((acc, s) => acc + (s.service?.duration || 0), 0) || Math.round((full.endTime.getTime() - full.startTime.getTime())/60000)
+            await tx.notificationQueue.create({
+              data: {
+                type: 'SEND_MESSAGE',
+                data: {
+                  teamId: user.teamId,
+                  clientId: full.clientId!,
+                  message,
+                  meta: {
+                    source: 'booking_cancelled_by_salon',
+                    booking: {
+                      startTime: full.startTime.toISOString(),
+                      serviceName: serviceNames.join(', '),
+                      serviceNames,
+                      serviceDurationMin: Math.round(durationMin),
+                      masterName: `${full.master.firstName || ''} ${full.master.lastName || ''}`.trim(),
+                      timezone: (full.team as any).timezone || 'Europe/Moscow',
+                    },
+                  },
+                },
+                executeAt: new Date(),
+                status: 'PENDING',
+                attempts: 0,
+                maxAttempts: 3,
+              } as any,
+            })
+          }
+        }
+      } catch (enqueueErr) {
+        console.error('Cancel booking notify enqueue error:', enqueueErr)
+      }
+
       return updated
     })
 

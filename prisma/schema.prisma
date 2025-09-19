@@ -511,6 +511,11 @@ model GlobalNotificationSettings {
   // Rate Limiting - Ограничение скорости отправки
   maxRequestsPerMinute          Int      @default(25) @map("max_requests_per_minute")
   requestDelayMs                Int      @default(2000) @map("request_delay_ms")
+
+  // Telegram-specific global limits (применяются одинаково ко всем командам)
+  telegramRatePerMinute         Int      @default(25) @map("telegram_rate_per_minute")
+  telegramPerChatPerMinute      Int      @default(15) @map("telegram_per_chat_per_minute")
+  maxConcurrentSends            Int      @default(1)  @map("max_concurrent_sends")
   
   // Retry Logic - Логика повторных попыток
   maxRetryAttempts              Int      @default(3) @map("max_retry_attempts")

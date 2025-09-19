@@ -8,16 +8,21 @@ type Template = { id: string; key: string; name: string; content: string; isHtml
 export default function AdminNotificationsRoot() {
   const [openNotifications, setOpenNotifications] = useState(false)
   const [openBroadcast, setOpenBroadcast] = useState(false)
+  const [openPostBooking, setOpenPostBooking] = useState(false)
+  const [openReminders, setOpenReminders] = useState(false)
+  const [openCancel, setOpenCancel] = useState(false)
 
   // Policy
   const [enablePostBooking, setEnablePostBooking] = useState<boolean>(false)
   const [delayAfterBookingSec, setDelayAfterBookingSec] = useState<number>(60)
   const [remindersHours, setRemindersHours] = useState<number[]>([])
   const [remindersEnabled, setRemindersEnabled] = useState<boolean>(true)
+  const [cancelEnabled, setCancelEnabled] = useState<boolean>(true)
   const [sendOnlyDaytime, setSendOnlyDaytime] = useState<boolean>(true)
   const [daytimeFrom, setDaytimeFrom] = useState<string>('09:00')
   const [daytimeTo, setDaytimeTo] = useState<string>('22:00')
   const [reminderMessage, setReminderMessage] = useState<string>('')
+  const [cancelMessage, setCancelMessage] = useState<string>('')
   const [loadingPolicy, setLoadingPolicy] = useState(false)
   const [savingPolicy, setSavingPolicy] = useState(false)
   const [policyError, setPolicyError] = useState<string>('')
@@ -102,7 +107,7 @@ export default function AdminNotificationsRoot() {
       })
       const data = await safeJson(resp)
       if (!resp.ok) throw new Error((data as any).error || 'Не удалось загрузить политику')
-      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[]; postBookingEnabled?: boolean; postBookingMessage?: string; sendOnlyDaytime?: boolean; daytimeFrom?: string; daytimeTo?: string; reminderMessage?: string; remindersEnabled?: boolean }
+      const policy = (data as any).policy as { delayAfterBookingSeconds: number; reminders: Reminder[]; postBookingEnabled?: boolean; postBookingMessage?: string; sendOnlyDaytime?: boolean; daytimeFrom?: string; daytimeTo?: string; reminderMessage?: string; remindersEnabled?: boolean; cancelBySalonEnabled?: boolean; cancelBySalonMessage?: string }
       setDelayAfterBookingSec(Number(policy?.delayAfterBookingSeconds ?? 60))
       setEnablePostBooking(Boolean(policy?.postBookingEnabled ?? false))
       setRemindersHours(Array.isArray(policy?.reminders) ? policy.reminders.map(r => Number(r.hoursBefore ?? 24)) : [])
@@ -112,6 +117,8 @@ export default function AdminNotificationsRoot() {
       setDaytimeTo(String(policy?.daytimeTo || '22:00'))
       setReminderMessage(String(policy?.reminderMessage || ''))
       setRemindersEnabled(Boolean(policy?.remindersEnabled ?? true))
+      setCancelEnabled(Boolean(policy?.cancelBySalonEnabled ?? true))
+      setCancelMessage(String(policy?.cancelBySalonMessage || ''))
     } catch (e) {
       setPolicyError(e instanceof Error ? e.message : 'Ошибка загрузки политики')
     } finally {
@@ -134,6 +141,8 @@ export default function AdminNotificationsRoot() {
         daytimeTo,
         reminderMessage,
         remindersEnabled,
+        cancelBySalonEnabled: !!cancelEnabled,
+        cancelBySalonMessage: cancelMessage,
       }
       const resp = await fetch('/api/admin/notifications/policy', {
         method: 'PUT',
@@ -200,142 +209,202 @@ export default function AdminNotificationsRoot() {
 
               <div className="space-y-6">
                 {/* Отбивка после бронирования */}
-                <div className="border rounded-md p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <input type="checkbox" checked={enablePostBooking} onChange={(e) => setEnablePostBooking(e.target.checked)} />
+                <div className="border rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setOpenPostBooking(!openPostBooking)}
+                    className="w-full flex items-center justify-between px-4 py-3"
+                  >
                     <div className="font-medium">Отбивка после оформления бронирования</div>
-                  </div>
-                  {enablePostBooking && (
-                    <>
-                      <label className="block text-sm text-gray-700 mb-1">Задержка отправки (секунды)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={delayAfterBookingSec}
-                        onChange={(e) => setDelayAfterBookingSec(parseInt(e.target.value || '0', 10))}
-                        className="w-full max-w-xs border rounded px-3 py-2"
-                      />
-                      <div className="mt-3 text-sm text-gray-600">
-                        Пример сообщения:
-                        <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
-                          {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nМы получили вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
-                        </div>
-                        <div className="mt-3">
-                          <label className="block text-sm text-gray-700 mb-1">Текст сообщения отбивки
-                            <button
-                              type="button"
-                              onClick={() => { setHelpContext('notifications'); setHelpOpen(true) }}
-                              className="ml-2 text-xs text-blue-600 hover:underline"
-                            >
-                              Справка по переменным
-                            </button>
-                          </label>
-                          <textarea
-                            value={postBookingMessage}
-                            onChange={(e) => setPostBookingMessage(e.target.value)}
-                            rows={5}
-                            className="w-full border rounded px-3 py-2"
-                            placeholder="Введите текст, можно использовать переменные: {client_name}, {team_name}, {service_name}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}"
-                          />
-                        </div>
+                    <span className="text-gray-500 text-sm">{openPostBooking ? 'Свернуть' : 'Развернуть'}</span>
+                  </button>
+                  {openPostBooking && (
+                    <div className="px-4 pb-4">
+                      <div className="mb-3">
+                        <label className="inline-flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={enablePostBooking} onChange={(e) => setEnablePostBooking(e.target.checked)} />
+                          Включено
+                        </label>
                       </div>
-                    </>
+                      {enablePostBooking && (
+                        <>
+                          <label className="block text-sm text-gray-700 mb-1">Задержка отправки (секунды)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={delayAfterBookingSec}
+                            onChange={(e) => setDelayAfterBookingSec(parseInt(e.target.value || '0', 10))}
+                            className="w-full max-w-xs border rounded px-3 py-2"
+                          />
+                          <div className="mt-3 text-sm text-gray-600">
+                            Пример сообщения:
+                            <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
+                              {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nМы получили вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
+                            </div>
+                            <div className="mt-3">
+                              <label className="block text-sm text-gray-700 mb-1">Текст сообщения отбивки
+                                <button
+                                  type="button"
+                                  onClick={() => { setHelpContext('notifications'); setHelpOpen(true) }}
+                                  className="ml-2 text-xs text-blue-600 hover:underline"
+                                >
+                                  Справка по переменным
+                                </button>
+                              </label>
+                              <textarea
+                                value={postBookingMessage}
+                                onChange={(e) => setPostBookingMessage(e.target.value)}
+                                rows={5}
+                                className="w-full border rounded px-3 py-2"
+                                placeholder="Введите текст, можно использовать переменные: {client_name}, {team_name}, {service_name}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
 
-                {/* Перед визитом */}
-                <div className="border rounded-md p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <input type="checkbox" checked={remindersEnabled} onChange={(e)=>setRemindersEnabled(e.target.checked)} />
+                {/* Напоминания перед визитом */}
+                <div className="border rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setOpenReminders(!openReminders)}
+                    className="w-full flex items-center justify-between px-4 py-3"
+                  >
                     <div className="font-medium">Напоминания перед визитом</div>
-                  </div>
-                  {!remindersEnabled ? null : (
-                  <>
-                  {/* Поддерживаемые переменные скрыты временно */}
-                  {/* <div className="text-gray-600 text-sm mb-3">
-                    Поддерживаемые переменные в тексте сообщения:
-                    <ul className="list-disc pl-5 space-y-1 mt-1">
-                      <li><span className="text-gray-700">{`{client_name}`}</span> — имя клиента</li>
-                      <li><span className="text-gray-700">{`{client_first_name}`}</span> — имя</li>
-                      <li><span className="text-gray-700">{`{client_last_name}`}</span> — фамилия</li>
-                      <li><span className="text-gray-700">{`{team_name}`}</span> — название салона</li>
-                      <li><span className="text-gray-700">{`{service_name}`}</span> — услуга (или список услуг)</li>
-                      <li><span className="text-gray-700">{`{master_name}`}</span> — имя мастера</li>
-                      <li><span className="text-gray-700">{`{booking_date}`}</span> — дата визита (ДД.ММ.ГГГГ)</li>
-                      <li><span className="text-gray-700">{`{booking_time}`}</span> — время визита (ЧЧ:ММ)</li>
-                      <li><span className="text-gray-700">{`{service_duration_min}`}</span> — длительность услуги (мин)</li>
-                    </ul>
-                  </div> */}
-                  <label className="inline-flex items-center gap-2 text-sm mb-3">
-                    <input type="checkbox" checked={sendOnlyDaytime} onChange={(e)=>setSendOnlyDaytime(e.target.checked)} />
-                    Отправлять уведомления только днём
-                  </label>
-                  {sendOnlyDaytime && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-sm text-gray-700">Период:</span>
-                      <input type="time" value={daytimeFrom} onChange={(e)=>setDaytimeFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
-                      <span className="text-sm text-gray-700">—</span>
-                      <input type="time" value={daytimeTo} onChange={(e)=>setDaytimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                    <span className="text-gray-500 text-sm">{openReminders ? 'Свернуть' : 'Развернуть'}</span>
+                  </button>
+                  {openReminders && (
+                    <div className="px-4 pb-4">
+                      <div className="mb-3">
+                        <label className="inline-flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={remindersEnabled} onChange={(e)=>setRemindersEnabled(e.target.checked)} />
+                          Включено
+                        </label>
+                      </div>
+                      {!remindersEnabled ? null : (
+                        <>
+                          <label className="inline-flex items-center gap-2 text-sm mb-3">
+                            <input type="checkbox" checked={sendOnlyDaytime} onChange={(e)=>setSendOnlyDaytime(e.target.checked)} />
+                            Отправлять уведомления только днём
+                          </label>
+                          {sendOnlyDaytime && (
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-sm text-gray-700">Период:</span>
+                              <input type="time" value={daytimeFrom} onChange={(e)=>setDaytimeFrom(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                              <span className="text-sm text-gray-700">—</span>
+                              <input type="time" value={daytimeTo} onChange={(e)=>setDaytimeTo(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+                            </div>
+                          )}
+                          <div className="mb-3">
+                            <button
+                              type="button"
+                              onClick={addReminder}
+                              disabled={!remindersEnabled || remindersHours.length >= 3}
+                              className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
+                            >
+                              + Добавить напоминание
+                            </button>
+                          </div>
+                          <div className="mt-3 space-y-3">
+                            {remindersHours.length === 0 && (
+                              <div className="text-sm text-gray-500">{remindersEnabled ? 'Нет напоминаний. Добавьте до 3 штук.' : 'Напоминания отключены'}</div>
+                            )}
+                            {remindersHours.map((h, idx) => (
+                              <div key={idx} className="flex items-center gap-3">
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={168}
+                                  value={h}
+                                  onChange={(e) => {
+                                    const v = parseInt(e.target.value || '1', 10)
+                                    setRemindersHours(remindersHours.map((x, i) => (i === idx ? v : x)))
+                                  }}
+                                  className="w-24 border rounded px-3 py-2"
+                                />
+                                <span className="text-sm text-gray-700">час(ов) до визита</span>
+                                <button type="button" onClick={() => removeReminder(idx)} className="text-sm text-red-600 hover:underline">Удалить</button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-4 text-sm text-gray-600">
+                            Пример сообщения:
+                            <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
+                              {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nНапоминаем про вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
+                            </div>
+                            <div className="mt-3">
+                              <label className="block text-sm text-gray-700 mb-1">Текст сообщения напоминания
+                                <button
+                                  type="button"
+                                  onClick={() => { setHelpContext('notifications'); setHelpOpen(true) }}
+                                  className="ml-2 text-xs text-blue-600 hover:underline"
+                                >
+                                  Справка по переменным
+                                </button>
+                              </label>
+                              <textarea
+                                value={reminderMessage}
+                                onChange={(e)=>setReminderMessage(e.target.value)}
+                                rows={5}
+                                className="w-full border rounded px-3 py-2"
+                                placeholder="Можно использовать переменные: {client_name}, {team_name}, {service_name}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
-                  <div className="mb-3">
-                    <button
-                      type="button"
-                      onClick={addReminder}
-                      disabled={!remindersEnabled || remindersHours.length >= 3}
-                      className="px-3 py-1.5 text-sm border rounded disabled:opacity-50"
-                    >
-                      + Добавить напоминание
-                    </button>
-                  </div>
-                  <div className="mt-3 space-y-3">
-                    {remindersHours.length === 0 && (
-                      <div className="text-sm text-gray-500">{remindersEnabled ? 'Нет напоминаний. Добавьте до 3 штук.' : 'Напоминания отключены'}</div>
-                    )}
-                    {remindersHours.map((h, idx) => (
-                      <div key={idx} className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          min={1}
-                          max={168}
-                          value={h}
-                          onChange={(e) => {
-                            const v = parseInt(e.target.value || '1', 10)
-                            setRemindersHours(remindersHours.map((x, i) => (i === idx ? v : x)))
-                          }}
-                          className="w-24 border rounded px-3 py-2"
-                        />
-                        <span className="text-sm text-gray-700">час(ов) до визита</span>
-                        <button type="button" onClick={() => removeReminder(idx)} className="text-sm text-red-600 hover:underline">Удалить</button>
-                      </div>
-                    ))}
-                  </div>
+                </div>
 
-                  <div className="mt-4 text-sm text-gray-600">
-                    Пример сообщения:
-                    <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
-                      {`${'{client_name}'}, спасибо за запись в ${'{team_name}'} ✨\n\nНапоминаем про вашу заявку на ${'{service_name}'} к мастеру ${'{master_name}'} — держим для вас время ✅\nДата и время: ${'{booking_date}'} в ${'{booking_time}'} (длительность ~${'{service_duration_min}'} мин) ⏱️\nЕсли планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\nХорошего дня!`}
+                {/* Уведомление при отмене брони салоном */}
+                <div className="border rounded-md">
+                  <button
+                    type="button"
+                    onClick={() => setOpenCancel(!openCancel)}
+                    className="w-full flex items-center justify-between px-4 py-3"
+                  >
+                    <div className="font-medium">Уведомление клиенту при отмене брони</div>
+                    <span className="text-gray-500 text-sm">{openCancel ? 'Свернуть' : 'Развернуть'}</span>
+                  </button>
+                  {openCancel && (
+                    <div className="px-4 pb-4">
+                      <div className="mb-3">
+                        <label className="inline-flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={cancelEnabled} onChange={(e)=>setCancelEnabled(e.target.checked)} />
+                          Включено
+                        </label>
+                      </div>
+                      {cancelEnabled && (
+                        <div className="text-sm text-gray-600">
+                          <div className="bg-gray-50 border rounded p-3 mt-1 whitespace-pre-line">
+                            {`Уважаемый клиент, {client_name}!\n\nК сожалению, ваша запись в салон {team_name} на услугу {service_name} к мастеру {master_name}\nДата и время: {booking_date} в {booking_time} (длительность ~{service_duration_min} мин) ⏱️\nотменена салоном. Пожалуйста, выберите другое удобное время для новой записи.`}
+                          </div>
+                          <div className="mt-3">
+                            <label className="block text-sm text-gray-700 mb-1">Текст сообщения при отмене
+                              <button
+                                type="button"
+                                onClick={() => { setHelpContext('notifications'); setHelpOpen(true) }}
+                                className="ml-2 text-xs text-blue-600 hover:underline"
+                              >
+                                Справка по переменным
+                              </button>
+                            </label>
+                            <textarea
+                              value={cancelMessage}
+                              onChange={(e)=>setCancelMessage(e.target.value)}
+                              rows={5}
+                              className="w-full border rounded px-3 py-2"
+                              placeholder="Переменные: {client_name}, {team_name}, {service_name}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-3">
-                      <label className="block text-sm text-gray-700 mb-1">Текст сообщения напоминания
-                        <button
-                          type="button"
-                          onClick={() => { setHelpContext('notifications'); setHelpOpen(true) }}
-                          className="ml-2 text-xs text-blue-600 hover:underline"
-                        >
-                          Справка по переменным
-                        </button>
-                      </label>
-                      <textarea
-                        value={reminderMessage}
-                        onChange={(e)=>setReminderMessage(e.target.value)}
-                        rows={5}
-                        className="w-full border rounded px-3 py-2"
-                        placeholder="Можно использовать переменные: {client_name}, {team_name}, {service_name}, {master_name}, {booking_date}, {booking_time}, {service_duration_min}"
-                      />
-                    </div>
-                  </div>
-                  </>
                   )}
                 </div>
 

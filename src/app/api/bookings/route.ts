@@ -594,7 +594,7 @@ export async function POST(request: NextRequest) {
         try {
           const policy = await prisma.teamNotificationPolicy.findUnique({ where: { teamId: team.id } })
           const policyJson: any = policy?.reminders || {}
-          const enabled = Boolean(policyJson.postBookingEnabled)
+          const enabled = Boolean(policyJson.postBookingEnabled ?? false)
           const messageTemplate = String(policyJson.postBookingMessage || '')
           const delaySec = Math.max(0, Number(policy?.delayAfterBookingSeconds ?? 60))
           if (enabled && messageTemplate && booking.client?.telegramId) {
@@ -634,7 +634,7 @@ export async function POST(request: NextRequest) {
         try {
           const policy = await prisma.teamNotificationPolicy.findUnique({ where: { teamId: team.id } })
           const pjson: any = policy?.reminders || {}
-          const remindersEnabled = Boolean(pjson.remindersEnabled ?? true)
+          const remindersEnabled = Boolean(pjson.remindersEnabled ?? false)
           const reminderMessage: string = String(pjson.reminderMessage || '')
           const items: Array<{ hoursBefore: number }> = Array.isArray(pjson.items) ? pjson.items : []
           const tz = (team as any).timezone || 'Europe/Moscow'

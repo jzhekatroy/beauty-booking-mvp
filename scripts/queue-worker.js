@@ -77,7 +77,7 @@ function buildReplacements(client, team, meta) {
   };
 }
 
-async function getGlobalLimits() {
+async function getLimits() {
   const g = await prisma.globalNotificationSettings.findFirst();
   return {
     maxRequestsPerMinute: g?.maxRequestsPerMinute ?? 25,
@@ -85,20 +85,47 @@ async function getGlobalLimits() {
     maxRetryAttempts: g?.maxRetryAttempts ?? 3,
     retryDelayMs: g?.retryDelayMs ?? 5000,
     exponentialBackoff: g?.exponentialBackoff ?? true,
+    telegramRatePerMinute: g?.telegramRatePerMinute ?? 25,
+    telegramPerChatPerMinute: g?.telegramPerChatPerMinute ?? 15,
+    maxConcurrentSends: g?.maxConcurrentSends ?? 1,
   };
 }
 
-async function getTeamLimits(teamId) {
-  try {
-    const p = await prisma.teamNotificationPolicy.findUnique({ where: { teamId } });
-    return {
-      telegramRatePerMinute: p?.telegramRatePerMinute ?? 25,
-      telegramPerChatPerMinute: p?.telegramPerChatPerMinute ?? 15,
-      maxConcurrentSends: p?.maxConcurrentSends ?? 1,
-    };
-  } catch {
-    return { telegramRatePerMinute: 25, telegramPerChatPerMinute: 15, maxConcurrentSends: 1 };
+// Простые счётчики окон по минуте в памяти для per-team и per-chat
+const teamWindow = new Map();
+const chatWindow = new Map();
+const globalWindow = { windowStart: 0, count: 0 };
+
+function allowWithinWindow(key, limit) {
+  const now = Date.now();
+  const windowStartMs = now - 60 * 1000;
+  const store = key.startsWith('team:') ? teamWindow : chatWindow;
+  const entry = store.get(key);
+  if (!entry || entry.windowStart < windowStartMs) {
+    store.set(key, { windowStart: now, count: 1 });
+    return true;
   }
+  if (entry.count < limit) {
+    entry.count += 1;
+    return true;
+  }
+  return false;
+}
+
+function allowGlobal(limit) {
+  if (!limit || limit <= 0) return true; // лимит отключен
+  const now = Date.now();
+  const windowStartMs = now - 60 * 1000;
+  if (globalWindow.windowStart < windowStartMs) {
+    globalWindow.windowStart = now;
+    globalWindow.count = 1;
+    return true;
+  }
+  if (globalWindow.count < limit) {
+    globalWindow.count += 1;
+    return true;
+  }
+  return false;
 }
 
 async function tryLockOne() {
@@ -126,25 +153,6 @@ async function sendTelegramMessageViaBot(teamBotToken, chatId, text) {
   return { ok, body };
 }
 
-// простая реализация квоты: ведём окна по минутам per team и per chat в памяти
-const teamWindow = new Map(); // teamId -> { windowStart: ms, count: number }
-const chatWindow = new Map(); // chatId -> { windowStart: ms, count: number }
-
-function allowWithinWindow(key, limit) {
-  const now = Date.now();
-  const winStart = now - 60 * 1000;
-  const entry = (key.startsWith('team:') ? teamWindow : chatWindow).get(key);
-  if (!entry || entry.windowStart < winStart) {
-    (key.startsWith('team:') ? teamWindow : chatWindow).set(key, { windowStart: now, count: 1 });
-    return true;
-  }
-  if (entry.count < limit) {
-    entry.count += 1;
-    return true;
-  }
-  return false;
-}
-
 async function handleSendMessage(task) {
   const data = task.data || {};
   const { teamId, clientId, message, meta } = data;
@@ -158,17 +166,24 @@ async function handleSendMessage(task) {
   if (!client.telegramId) throw new Error('Client telegramId missing');
   if (!client.team?.telegramBotToken) throw new Error('Team bot token missing');
 
-  // Rate limit per team/per chat (minute window)
-  const teamLimits = await getTeamLimits(client.teamId);
+  // Rate limiting (глобальные значения применяются одинаково к каждой команде)
+  const limits = await getLimits();
+  // Проверка глобального лимита запросов/мин (если 0 — выключен)
+  if (!allowGlobal(limits.maxRequestsPerMinute)) {
+    await prisma.notificationQueue.update({
+      where: { id: task.id },
+      data: { status: 'PENDING', executeAt: new Date(Date.now() + 1000), errorMessage: 'Global rate limited, rescheduled' },
+    });
+    return true;
+  }
   const teamKey = `team:${client.teamId}`;
   const chatKey = `chat:${String(client.telegramId)}`;
-  if (!allowWithinWindow(teamKey, teamLimits.telegramRatePerMinute) || !allowWithinWindow(chatKey, teamLimits.telegramPerChatPerMinute)) {
-    // отложим задачу на следующую секунду, чтобы не терять темп
+  if (!allowWithinWindow(teamKey, limits.telegramRatePerMinute) || !allowWithinWindow(chatKey, limits.telegramPerChatPerMinute)) {
     await prisma.notificationQueue.update({
       where: { id: task.id },
       data: { status: 'PENDING', executeAt: new Date(Date.now() + 1000), errorMessage: 'Rate limited, rescheduled' },
     });
-    return true; // считаем обработанной (перепланирована)
+    return true;
   }
 
   // Templating of variables
@@ -329,7 +344,7 @@ async function processOnce() {
   if (ok) {
     await prisma.notificationQueue.update({ where: { id: task.id }, data: { status: 'COMPLETED' } });
   } else {
-    const limits = await getGlobalLimits();
+    const limits = await getLimits();
     const attempts = task.attempts + 1;
     if (attempts < (limits.maxRetryAttempts ?? 3)) {
       await prisma.notificationQueue.update({
@@ -354,7 +369,7 @@ async function processOnce() {
 
 async function main() {
   console.log('[queue-worker] starting...');
-  const limits = await getGlobalLimits();
+  const limits = await getLimits();
   const minDelay = Math.max(250, limits.requestDelayMs);
   console.log('[queue-worker] limits', limits, 'minDelay', minDelay);
 

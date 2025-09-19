@@ -19,6 +19,8 @@ type PolicyJson = {
   daytimeTo?: string
   reminderMessage?: string
   remindersEnabled?: boolean
+  cancelBySalonEnabled?: boolean
+  cancelBySalonMessage?: string
 }
 
 function defaultPostBookingMessage(): string {
@@ -28,6 +30,15 @@ function defaultPostBookingMessage(): string {
     'Дата и время: {booking_date} в {booking_time} (длительность ~{service_duration_min} мин) ⏱️\n' +
     'Если планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\n' +
     'Хорошего дня!'
+  )
+}
+
+function defaultCancelBySalonMessage(): string {
+  return (
+    'Уважаемый клиент, {client_name}!\n\n' +
+    'К сожалению, ваша запись в салон {team_name} на услугу {service_name} к мастеру {master_name}\n' +
+    'Дата и время: {booking_date} в {booking_time} (длительность ~{service_duration_min} мин) ⏱️\n' +
+    'отменена салоном. Пожалуйста, выберите другое удобное время для новой записи.'
   )
 }
 
@@ -93,7 +104,9 @@ export async function GET(request: NextRequest) {
           'Если планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\n' +
           'Хорошего дня!'
         )),
-        remindersEnabled: Boolean(json.remindersEnabled ?? true),
+        remindersEnabled: Boolean(json.remindersEnabled ?? false),
+        cancelBySalonEnabled: Boolean(json.cancelBySalonEnabled ?? false),
+        cancelBySalonMessage: String(json.cancelBySalonMessage || defaultCancelBySalonMessage()),
       },
     })
   } catch (error) {
@@ -127,7 +140,9 @@ export async function PUT(request: NextRequest) {
       'Если планы изменятся — вы можете отменить запись по ссылке: ссылка на отмену ❌\n\n' +
       'Хорошего дня!'
     )
-    const remindersEnabled = body.remindersEnabled === undefined ? true : !!body.remindersEnabled
+    const remindersEnabled = body.remindersEnabled === undefined ? false : !!body.remindersEnabled
+    const cancelBySalonEnabled = body.cancelBySalonEnabled === undefined ? true : !!body.cancelBySalonEnabled
+    const cancelBySalonMessage = String(body.cancelBySalonMessage || '').trim() || defaultCancelBySalonMessage()
 
     const delayAfterBookingSeconds = Number.isFinite(Number(delayAfterBookingSecondsRaw))
       ? Math.max(0, Math.floor(Number(delayAfterBookingSecondsRaw)))
@@ -145,6 +160,8 @@ export async function PUT(request: NextRequest) {
       daytimeTo,
       reminderMessage,
       remindersEnabled,
+      cancelBySalonEnabled,
+      cancelBySalonMessage,
     }
 
     const hasModel = (prisma as any).teamNotificationPolicy && typeof (prisma as any).teamNotificationPolicy.upsert === 'function'
@@ -175,6 +192,8 @@ export async function PUT(request: NextRequest) {
       daytimeFrom,
       daytimeTo,
       reminderMessage,
+      cancelBySalonEnabled,
+      cancelBySalonMessage,
     } })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error'

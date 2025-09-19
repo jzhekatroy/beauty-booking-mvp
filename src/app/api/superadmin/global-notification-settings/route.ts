@@ -27,6 +27,9 @@ async function ensureGlobalNotificationSettingsSchema(): Promise<void> {
   await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS exponential_backoff BOOLEAN`)
   await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS failure_threshold INTEGER`)
   await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS recovery_timeout_ms INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS telegram_rate_per_minute INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS telegram_per_chat_per_minute INTEGER`)
+  await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS max_concurrent_sends INTEGER`)
   await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS enabled BOOLEAN`)
   await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`)
   await prisma.$executeRawUnsafe(`ALTER TABLE public.global_notification_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`)
@@ -50,6 +53,9 @@ export async function GET(request: NextRequest) {
           exponentialBackoff: true,
           failureThreshold: 5,
           recoveryTimeoutMs: 60000,
+          telegramRatePerMinute: 25,
+          telegramPerChatPerMinute: 15,
+          maxConcurrentSends: 1,
           enabled: true,
         }
       })
@@ -95,12 +101,16 @@ export async function PUT(request: NextRequest) {
     const numFailureThreshold = toNumber(body.failureThreshold)
     const numRecoveryTimeoutMs = toNumber(body.recoveryTimeoutMs)
     const boolExponentialBackoff = typeof body.exponentialBackoff === 'boolean' ? body.exponentialBackoff : undefined
+    const numTelegramRatePerMinute = toNumber(body.telegramRatePerMinute)
+    const numTelegramPerChatPerMinute = toNumber(body.telegramPerChatPerMinute)
+    const numMaxConcurrentSends = toNumber(body.maxConcurrentSends)
     const boolEnabled = typeof body.enabled === 'boolean' ? body.enabled : undefined
 
     // Валидация
-    if (numMaxRequestsPerMinute !== undefined && (numMaxRequestsPerMinute < 1 || numMaxRequestsPerMinute > 30)) {
+    // Разрешаем 0 (означает выключено) и снимаем верхнюю границу
+    if (numMaxRequestsPerMinute !== undefined && numMaxRequestsPerMinute < 0) {
       return NextResponse.json(
-        { error: 'maxRequestsPerMinute must be between 1 and 30' },
+        { error: 'maxRequestsPerMinute must be >= 0' },
         { status: 400 }
       )
     }
@@ -140,6 +150,27 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    if (numTelegramRatePerMinute !== undefined && (numTelegramRatePerMinute < 1 || numTelegramRatePerMinute > 30)) {
+      return NextResponse.json(
+        { error: 'telegramRatePerMinute must be between 1 and 30' },
+        { status: 400 }
+      )
+    }
+
+    if (numTelegramPerChatPerMinute !== undefined && (numTelegramPerChatPerMinute < 1 || numTelegramPerChatPerMinute > 30)) {
+      return NextResponse.json(
+        { error: 'telegramPerChatPerMinute must be between 1 and 30' },
+        { status: 400 }
+      )
+    }
+
+    if (numMaxConcurrentSends !== undefined && (numMaxConcurrentSends < 1 || numMaxConcurrentSends > 10)) {
+      return NextResponse.json(
+        { error: 'maxConcurrentSends must be between 1 and 10' },
+        { status: 400 }
+      )
+    }
+
     // Обновляем настройки
     let settings = await prisma.globalNotificationSettings.findFirst()
     
@@ -152,6 +183,9 @@ export async function PUT(request: NextRequest) {
           maxRetryAttempts: numMaxRetryAttempts ?? settings.maxRetryAttempts,
           retryDelayMs: numRetryDelayMs ?? settings.retryDelayMs,
           exponentialBackoff: boolExponentialBackoff ?? settings.exponentialBackoff,
+          telegramRatePerMinute: numTelegramRatePerMinute ?? settings.telegramRatePerMinute,
+          telegramPerChatPerMinute: numTelegramPerChatPerMinute ?? settings.telegramPerChatPerMinute,
+          maxConcurrentSends: numMaxConcurrentSends ?? settings.maxConcurrentSends,
           failureThreshold: numFailureThreshold ?? settings.failureThreshold,
           recoveryTimeoutMs: numRecoveryTimeoutMs ?? settings.recoveryTimeoutMs,
           enabled: boolEnabled ?? settings.enabled
@@ -165,6 +199,9 @@ export async function PUT(request: NextRequest) {
           maxRetryAttempts: numMaxRetryAttempts ?? 3,
           retryDelayMs: numRetryDelayMs ?? 5000,
           exponentialBackoff: boolExponentialBackoff ?? true,
+          telegramRatePerMinute: numTelegramRatePerMinute ?? 25,
+          telegramPerChatPerMinute: numTelegramPerChatPerMinute ?? 15,
+          maxConcurrentSends: numMaxConcurrentSends ?? 1,
           failureThreshold: numFailureThreshold ?? 5,
           recoveryTimeoutMs: numRecoveryTimeoutMs ?? 60000,
           enabled: boolEnabled ?? true
@@ -201,6 +238,9 @@ export async function POST(request: NextRequest) {
           maxRetryAttempts: 3,
           retryDelayMs: 5000,
           exponentialBackoff: true,
+          telegramRatePerMinute: 25,
+          telegramPerChatPerMinute: 15,
+          maxConcurrentSends: 1,
           failureThreshold: 5,
           recoveryTimeoutMs: 60000,
           enabled: true
@@ -214,6 +254,9 @@ export async function POST(request: NextRequest) {
           maxRetryAttempts: 3,
           retryDelayMs: 5000,
           exponentialBackoff: true,
+          telegramRatePerMinute: 25,
+          telegramPerChatPerMinute: 15,
+          maxConcurrentSends: 1,
           failureThreshold: 5,
           recoveryTimeoutMs: 60000,
           enabled: true

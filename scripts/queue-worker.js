@@ -78,16 +78,31 @@ function buildReplacements(client, team, meta) {
 }
 
 async function getLimits() {
-  const g = await prisma.globalNotificationSettings.findFirst();
+  // Читаем через сырой SQL, чтобы не падать на NULL в старых строках (Prisma non-null Int)
+  const rows = await prisma.$queryRawUnsafe(`
+    SELECT 
+      COALESCE(max_requests_per_minute, 0)                          AS "maxRequestsPerMinute",
+      COALESCE(request_delay_ms, 2000)                              AS "requestDelayMs",
+      COALESCE(max_retry_attempts, 3)                               AS "maxRetryAttempts",
+      COALESCE(retry_delay_ms, 5000)                                AS "retryDelayMs",
+      COALESCE(exponential_backoff, true)                           AS "exponentialBackoff",
+      COALESCE(telegram_rate_per_minute, 25)                        AS "telegramRatePerMinute",
+      COALESCE(telegram_per_chat_per_minute, 15)                    AS "telegramPerChatPerMinute",
+      COALESCE(max_concurrent_sends, 1)                             AS "maxConcurrentSends"
+    FROM public.global_notification_settings 
+    ORDER BY created_at ASC
+    LIMIT 1
+  `).catch(() => []);
+  const g = Array.isArray(rows) && rows.length ? rows[0] : {};
   return {
-    maxRequestsPerMinute: g?.maxRequestsPerMinute ?? 25,
-    requestDelayMs: g?.requestDelayMs ?? 2000,
-    maxRetryAttempts: g?.maxRetryAttempts ?? 3,
-    retryDelayMs: g?.retryDelayMs ?? 5000,
-    exponentialBackoff: g?.exponentialBackoff ?? true,
-    telegramRatePerMinute: g?.telegramRatePerMinute ?? 25,
-    telegramPerChatPerMinute: g?.telegramPerChatPerMinute ?? 15,
-    maxConcurrentSends: g?.maxConcurrentSends ?? 1,
+    maxRequestsPerMinute: Number(g.maxRequestsPerMinute ?? 0),
+    requestDelayMs: Number(g.requestDelayMs ?? 2000),
+    maxRetryAttempts: Number(g.maxRetryAttempts ?? 3),
+    retryDelayMs: Number(g.retryDelayMs ?? 5000),
+    exponentialBackoff: Boolean(g.exponentialBackoff ?? true),
+    telegramRatePerMinute: Number(g.telegramRatePerMinute ?? 25),
+    telegramPerChatPerMinute: Number(g.telegramPerChatPerMinute ?? 15),
+    maxConcurrentSends: Number(g.maxConcurrentSends ?? 1),
   };
 }
 

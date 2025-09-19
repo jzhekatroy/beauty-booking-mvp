@@ -61,19 +61,31 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ settings })
+    // Подставляем дефолтные значения для возможных NULL в старых записях
+    const safe = settings ? {
+      ...settings,
+      maxRequestsPerMinute: settings.maxRequestsPerMinute ?? 0,
+      telegramRatePerMinute: settings.telegramRatePerMinute ?? 25,
+      telegramPerChatPerMinute: settings.telegramPerChatPerMinute ?? 15,
+      maxConcurrentSends: settings.maxConcurrentSends ?? 1,
+    } : settings
+
+    return NextResponse.json({ settings: safe })
   } catch (error) {
     console.error('Error fetching global notification settings:', error)
     return NextResponse.json({
       settings: {
         id: 'global-default',
-        maxRequestsPerMinute: 25,
+        maxRequestsPerMinute: 0,
         requestDelayMs: 2000,
         maxRetryAttempts: 3,
         retryDelayMs: 5000,
         exponentialBackoff: true,
         failureThreshold: 5,
         recoveryTimeoutMs: 60000,
+        telegramRatePerMinute: 25,
+        telegramPerChatPerMinute: 15,
+        maxConcurrentSends: 1,
         enabled: true,
         createdAt: new Date(),
         updatedAt: new Date(),

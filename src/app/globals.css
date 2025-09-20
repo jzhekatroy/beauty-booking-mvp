@@ -6,10 +6,19 @@
     --foreground: #171717;
     --primary: #00acf4;
     --primary-foreground: #ffffff;
+    --brand: #0f172a; /* основной брендовый цвет (пример: slate-900) */
+    --sidebar-bg: #ffffff; /* фон для выезжающего меню */
+    --sidebar-overlay: rgba(0,0,0,0.5); /* оверлей под drawer */
     --tg-viewport-height: 100vh;
     --tg-viewport-stable-height: 100vh;
     /* Типографика */
     --font-size: 14px;
+    /* Sidebar tokens (HSL) for exact reference match */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-accent: 206 70% 92%;
+    --sidebar-accent-foreground: 206 70% 64%;
+    --sidebar-border: 214.3 31.8% 91.4%;
   }
 
   @theme {
@@ -17,6 +26,7 @@
     --color-foreground: var(--foreground);
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
+    --color-brand: var(--brand);
     --font-sans: var(--font-geist-sans);
     --font-mono: var(--font-geist-mono);
     /* Шкала размеров текста для 1:1 соответствия */
@@ -32,6 +42,12 @@
     :root {
       --background: #0a0a0a;
       --foreground: #ededed;
+      /* Dark counterparts matching reference */
+      --sidebar-background: 215 28% 17%;
+      --sidebar-foreground: 0 0% 100%;
+      --sidebar-accent: 206 70% 92%;
+      --sidebar-accent-foreground: 206 70% 64%;
+      --sidebar-border: 240 3.7% 15.9%;
     }
   }
 

@@ -8,9 +8,10 @@ import {
   Users, 
   User, 
   Scissors,
-  BookOpen,
+  FileText,
   Settings,
   LogOut,
+  Bell,
   Menu,
   X,
   ExternalLink
@@ -39,6 +40,7 @@ export default function AdminLayout({
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -85,12 +87,12 @@ export default function AdminLayout({
 
   const navigation = [
     { name: 'Календарь', href: '/admin', icon: Calendar },
-    { name: 'Сводка по бронированиям', href: '/admin/bookings', icon: BookOpen },
+    { name: 'Сводка', href: '/admin/bookings', icon: FileText },
     { name: 'Клиенты', href: '/admin/clients', icon: Users },
     { name: 'Услуги', href: '/admin/services', icon: Scissors },
     { name: 'Мастера', href: '/admin/masters', icon: User },
     { name: 'Настройки', href: '/admin/settings', icon: Settings },
-    { name: 'Уведомления и рассылки', href: '/admin/notifications', icon: BookOpen },
+    { name: 'Уведомления', href: '/admin/notifications', icon: Bell },
   ]
 
   if (isLoading) {
@@ -127,107 +129,159 @@ export default function AdminLayout({
           </div>
         </div>
       )}
-      {/* Top header with horizontal navigation */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo/Brand */}
-            <div className="flex items-center">
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">{user.team.name}</h1>
-                <p className="text-xs text-gray-500">{user.team.teamNumber}</p>
-              </div>
-            </div>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-8">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'text-blue-600 bg-blue-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
-                  >
-                    <item.icon className="w-4 h-4 mr-2" />
-                    {item.name}
-                  </Link>
-                )
-              })}
-            </nav>
-
-            {/* Right side - Public page link + User menu */}
-            <div className="flex items-center space-x-4">
-              {/* User info and logout */}
-              <div className="flex items-center space-x-3">
+      {/* Mobile-only top bar with burger button */}
+      <div className="md:hidden px-2 py-2">
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+          aria-label="Открыть меню"
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+        {/* Mobile Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden">
+            <div
+              className="fixed inset-0 z-40 bg-[var(--sidebar-overlay)]"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
+            <div className="fixed inset-y-0 left-0 z-50 w-72 max-w-[80vw] bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] shadow-xl border-r border-[hsl(var(--sidebar-border))] flex flex-col">
+              <div className="h-16 px-4 flex items-center border-b border-[hsl(var(--sidebar-border))]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-light.png" alt="Logo" className="h-8 w-auto object-contain mr-3" />
+                <div className="min-w-0">
+                  <div className="text-sm font-bold truncate">{user.team.name}</div>
+                  <div className="text-xs opacity-70 truncate">{user.team.teamNumber}</div>
+                </div>
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                  className="ml-auto p-2 rounded-md text-[hsl(var(--sidebar-foreground))]/60 hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-label="Закрыть"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Выйти</span>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-
-              {/* Mobile menu button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-50"
-              >
-                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Navigation */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 py-4">
-              <div className="space-y-1">
+              <nav className="flex-1 overflow-y-auto py-2 custom-scrollbar">
                 {navigation.map((item) => {
                   const isActive = pathname === item.href
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`mx-2 mb-1 flex items-center px-4 py-3 rounded-lg text-sm font-bold transition-colors ${
                         isActive
-                          ? 'text-blue-600 bg-blue-50'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                          ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))] shadow-sm'
+                          : 'text-[hsl(var(--sidebar-foreground))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'
                       }`}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <item.icon className="w-4 h-4 mr-3" />
-                      {item.name}
+                      <item.icon className="w-5 h-5 mr-3" />
+                      <span className="truncate">{item.name}</span>
                     </Link>
                   )
                 })}
-                
-                {/* Mobile public page link */}
                 {user.team.slug && (
                   <Link
                     href={`/book/${user.team.bookingSlug || user.team.slug}`}
                     target="_blank"
-                    className="flex items-center px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                    className="mx-2 mt-2 flex items-center px-4 py-3 rounded-lg text-sm font-bold text-[hsl(var(--sidebar-accent-foreground))] bg-[hsl(var(--sidebar-accent))] hover:bg-[hsl(var(--sidebar-accent))]"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <ExternalLink className="w-4 h-4 mr-3" />
-                    Страница записи
+                    <ExternalLink className="w-5 h-5 mr-3" />
+                    <span className="truncate">Страница записи</span>
                   </Link>
                 )}
-              </div>
+                <div className="my-3 mx-2 border-t border-[hsl(var(--sidebar-border))]" />
+                <button
+                  onClick={() => { setIsMobileMenuOpen(false); handleLogout() }}
+                  className="mx-2 mt-2 w-[calc(100%-1rem)] flex items-center justify-center px-4 py-3 text-sm font-bold rounded-lg transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]"
+                >
+                  <LogOut className="w-5 h-5 mr-2" />
+                  Выйти
+                </button>
+              </nav>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Main content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      {/* Main content: вертикальный сайдбар для всех страниц */}
+      <div className="md:flex">
+        {/* Desktop Sidebar */}
+        <aside className={`hidden md:flex md:flex-col ${isCollapsed ? 'md:w-20' : 'md:w-64'} md:shrink-0 border-r border-[hsl(var(--sidebar-border))] bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] transition-all duration-300`}>
+          {/* Sidebar header: logo on top; below, salon name + cabinet left, collapse toggle right */}
+          <div className="p-4 border-b border-[hsl(var(--sidebar-border))]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={isCollapsed ? '/logo-mini.png' : '/logo-light.png'}
+              alt="Logo"
+              className={`${isCollapsed ? 'h-8 w-auto mx-auto' : 'h-10 w-auto'} object-contain`}
+            />
+            <div className="mt-2 flex items-center w-full">
+              {!isCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <div className="text-base font-bold truncate">{user.team.name}</div>
+                  <div className="text-xs opacity-70 truncate">{user.team.teamNumber}</div>
+                </div>
+              )}
+              <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="ml-auto p-2 rounded-md text-[hsl(var(--sidebar-foreground))]/70 hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]"
+                aria-label="Свернуть меню"
+                title="Свернуть меню"
+              >
+                {isCollapsed ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 19l-7-7 7-7"/></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5l7 7-7 7"/></svg>
+                )}
+              </button>
+            </div>
+          </div>
+          <nav className="flex-1 overflow-y-auto py-3 custom-scrollbar">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`mx-2 mb-1 flex items-center ${isCollapsed ? 'justify-center' : ''} px-4 py-3 rounded-lg text-sm font-bold transition-colors ${
+                    isActive
+                      ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))] shadow-sm'
+                      : 'text-[hsl(var(--sidebar-foreground))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'
+                  }`}
+                >
+                  <item.icon className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                  {!isCollapsed && <span className="truncate">{item.name}</span>}
+                </Link>
+              )
+            })}
+            {user.team.slug && (
+              <Link
+                href={`/book/${user.team.bookingSlug || user.team.slug}`}
+                target="_blank"
+                className={`mx-2 mt-2 flex items-center ${isCollapsed ? 'justify-center' : ''} px-4 py-3 rounded-lg text-sm font-bold text-[hsl(var(--sidebar-accent-foreground))] bg-[hsl(var(--sidebar-accent))] hover:bg-[hsl(var(--sidebar-accent))]`}
+              >
+                <ExternalLink className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                {!isCollapsed && <span className="truncate">Страница записи</span>}
+              </Link>
+            )}
+            <div className="my-3 mx-2 border-t border-[hsl(var(--sidebar-border))]" />
+            {/* Logout button placed statically right under the last menu item */}
+            <button
+              onClick={handleLogout}
+              className={`mx-2 mt-2 flex items-center ${isCollapsed ? 'justify-center' : ''} px-4 py-3 rounded-lg text-sm font-bold transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]`}
+            >
+              <LogOut className={`w-5 h-5 ${isCollapsed ? '' : 'mr-3'}`} />
+              {!isCollapsed && <span className="truncate">Выйти</span>}
+            </button>
+          </nav>
+        </aside>
+        {/* Content */}
+        <main className="flex-1 py-6 px-4 sm:px-6 lg:px-8">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

@@ -772,7 +772,7 @@ export default function BookingsPage() {
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="md:flex md:items-center md:justify-between">
           <div className="flex-1 min-w-0">
-            <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+            <h2 className="text-2xl font-bold leading-7 text-[hsl(var(--sidebar-foreground))] sm:text-3xl sm:truncate">
               Сводка по бронированиям
             </h2>
           </div>
@@ -781,13 +781,13 @@ export default function BookingsPage() {
         
 
         {/* Управление диапазоном и режимом просмотра */}
-        <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+        <div className="mt-4 bg-white rounded-lg shadow-sm border border-[hsl(var(--sidebar-border))] p-3">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex rounded-md border border-gray-300 overflow-hidden">
-              <button onClick={() => setViewMode('day')} className={`px-3 py-2 text-sm ${viewMode === 'day' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>День</button>
-              <button onClick={() => setViewMode('week')} className={`px-3 py-2 text-sm ${viewMode === 'week' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Неделя</button>
-              <button onClick={() => setViewMode('month')} className={`px-3 py-2 text-sm ${viewMode === 'month' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Месяц</button>
-              <button onClick={() => setViewMode('range')} className={`px-3 py-2 text-sm ${viewMode === 'range' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Диапазон</button>
+            <div className="inline-flex rounded-md border border-[hsl(var(--sidebar-border))] overflow-hidden">
+              <button onClick={() => setViewMode('day')} className={`px-3 py-2 text-sm font-bold ${viewMode === 'day' ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'bg-white text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'}`}>День</button>
+              <button onClick={() => setViewMode('week')} className={`px-3 py-2 text-sm font-bold ${viewMode === 'week' ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'bg-white text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'}`}>Неделя</button>
+              <button onClick={() => setViewMode('month')} className={`px-3 py-2 text-sm font-bold ${viewMode === 'month' ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'bg-white text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'}`}>Месяц</button>
+              <button onClick={() => setViewMode('range')} className={`px-3 py-2 text-sm font-bold ${viewMode === 'range' ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'bg-white text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'}`}>Диапазон</button>
             </div>
 
             <div className="flex items-center gap-2">
@@ -802,10 +802,10 @@ export default function BookingsPage() {
                   }
                   setAnchorDate(d)
                 }}
-                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                className="px-2 py-1 rounded-lg text-sm text-[hsl(var(--sidebar-foreground))]/80 hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] border border-[hsl(var(--sidebar-border))]"
                 title="Назад"
               >◀</button>
-              <div className="text-sm font-medium text-gray-900 min-w-[160px] text-center">{formatRangeLabel()}</div>
+              <div className="text-sm font-bold text-[hsl(var(--sidebar-foreground))] min-w-[160px] text-center">{formatRangeLabel()}</div>
               <button
                 onClick={() => {
                   const d = new Date(anchorDate)
@@ -814,12 +814,12 @@ export default function BookingsPage() {
                   else if (viewMode === 'month') d.setMonth(d.getMonth() + 1)
                   setAnchorDate(d)
                 }}
-                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                className="px-2 py-1 rounded-lg text-sm text-[hsl(var(--sidebar-foreground))]/80 hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] border border-[hsl(var(--sidebar-border))]"
                 title="Вперед"
               >▶</button>
               <button
                 onClick={() => setAnchorDate(new Date())}
-                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                className="px-2 py-1 rounded-lg text-sm font-bold bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))] hover:bg-[hsl(var(--sidebar-accent))]"
               >Сегодня</button>
             </div>
 
@@ -839,7 +839,7 @@ export default function BookingsPage() {
                     const d = createDateInSalonTimezone(y, m, 1, 12, 0, tz)
                     setAnchorDate(d)
                   }}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--sidebar-ring))]"
                 />
               </div>
             )}
@@ -861,16 +861,16 @@ export default function BookingsPage() {
                     const newDate = createDateInSalonTimezone(y, m, d, 12, 0, tz)
                     setAnchorDate(newDate)
                   }}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm"
+                  className="border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--sidebar-ring))]"
                 />
               </div>
             )}
 
             {viewMode === 'range' && (
               <div className="ml-auto flex items-center gap-2">
-                <input type="date" value={rangeStartStr} onChange={(e) => setRangeStartStr(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input type="date" value={rangeStartStr} onChange={(e) => setRangeStartStr(e.target.value)} className="border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--sidebar-ring))]" />
                 <span>—</span>
-                <input type="date" value={rangeEndStr} onChange={(e) => setRangeEndStr(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                <input type="date" value={rangeEndStr} onChange={(e) => setRangeEndStr(e.target.value)} className="border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--sidebar-ring))]" />
               </div>
             )}
           </div>
@@ -881,7 +881,7 @@ export default function BookingsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowAdvancedFilters(prev => !prev)}
-              className={`px-3 py-2 text-sm border rounded-md bg-white hover:bg-gray-50 ${(!showAdvancedFilters && hasActiveAdvancedFilters) ? 'border-orange-400 text-orange-700' : 'border-gray-300'}`}
+              className={`px-3 py-2 text-sm border rounded-md bg-white hover:bg-[hsl(var(--sidebar-accent))] ${(!showAdvancedFilters && hasActiveAdvancedFilters) ? 'border-orange-400 text-orange-700' : 'border-[hsl(var(--sidebar-border))] text-[hsl(var(--sidebar-foreground))]'}`}
             >
               {showAdvancedFilters ? 'Скрыть дополнительные фильтры ▲' : 'Дополнительные фильтры ▼'}
             </button>
@@ -905,9 +905,9 @@ export default function BookingsPage() {
 
         {/* Дополнительные фильтры (ниже периода) */}
         {showAdvancedFilters && (
-        <div className="mt-3 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="mt-3 bg-white rounded-lg shadow-sm border border-[hsl(var(--sidebar-border))] p-4">
           <div className="flex justify-between items-center mb-3">
-            <div className="text-sm text-gray-600">Вы можете выбрать несколько значений в каждом поле, удерживая Ctrl/Cmd или перетаскивая мышью.</div>
+            <div className="text-sm text-[hsl(var(--sidebar-foreground))]/80">Вы можете выбрать несколько значений в каждом поле, удерживая Ctrl/Cmd или перетаскивая мышью.</div>
             <button
               onClick={() => {
                 setSelectedStatuses([])
@@ -916,13 +916,13 @@ export default function BookingsPage() {
                 setIncludeDismissedMasters(false)
                 setIncludeArchivedServices(false)
               }}
-              className="text-sm text-gray-700 border border-gray-300 rounded-md px-3 py-1 hover:bg-gray-50"
+              className="text-sm text-[hsl(var(--sidebar-foreground))] border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-1 hover:bg-[hsl(var(--sidebar-accent))]"
             >Очистить все доп. фильтры</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Статус</label>
-              <select multiple value={selectedStatuses} onChange={(e) => { const opts = Array.from(e.target.selectedOptions).map(o => o.value); setSelectedStatuses(opts) }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm h-28">
+              <label className="block text-sm font-medium text-[hsl(var(--sidebar-foreground))] mb-2">Статус</label>
+              <select multiple value={selectedStatuses} onChange={(e) => { const opts = Array.from(e.target.selectedOptions).map(o => o.value); setSelectedStatuses(opts) }} className="w-full border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-2 text-sm h-28">
                 <option value="NEW">Создана</option>
                 <option value="CONFIRMED">Подтверждена</option>
                 <option value="COMPLETED">Завершена</option>
@@ -930,36 +930,36 @@ export default function BookingsPage() {
                 <option value="CANCELLED_BY_CLIENT">Отменена клиентом</option>
                 <option value="CANCELLED_BY_SALON">Отменена администратором</option>
               </select>
-              <div className="mt-2 text-xs text-gray-500">Мультивыбор: Cmd/Ctrl + клик</div>
+              <div className="mt-2 text-xs text-[hsl(var(--sidebar-foreground))]/70">Мультивыбор: Cmd/Ctrl + клик</div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Мастера</label>
-              <select multiple value={selectedMasterIds} onChange={(e) => { const opts = Array.from(e.target.selectedOptions).map(o => o.value); setSelectedMasterIds(opts) }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm h-28">
+              <label className="block text-sm font-medium text-[hsl(var(--sidebar-foreground))] mb-2">Мастера</label>
+              <select multiple value={selectedMasterIds} onChange={(e) => { const opts = Array.from(e.target.selectedOptions).map(o => o.value); setSelectedMasterIds(opts) }} className="w-full border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-2 text-sm h-28">
                 {displayedMasters.map(master => (<option key={master.id} value={master.id}>{master.firstName} {master.lastName}{master.isActive === false ? ' (уволен)' : ''}</option>))}
               </select>
-              <label className="mt-2 inline-flex items-center text-xs text-gray-600">
+              <label className="mt-2 inline-flex items-center text-xs text-[hsl(var(--sidebar-foreground))]/80">
                 <input type="checkbox" className="mr-2" checked={includeDismissedMasters} onChange={(e) => setIncludeDismissedMasters(e.target.checked)} />
                 Показать уволенных
               </label>
-              <div className="mt-1 text-xs text-gray-500">Мультивыбор: Cmd/Ctrl + клик</div>
+              <div className="mt-1 text-xs text-[hsl(var(--sidebar-foreground))]/70">Мультивыбор: Cmd/Ctrl + клик</div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Услуги</label>
-              <select multiple value={selectedServiceIds} onChange={(e) => { const opts = Array.from(e.target.selectedOptions).map(o => o.value); setSelectedServiceIds(opts) }} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm h-28">
+              <label className="block text-sm font-medium text-[hsl(var(--sidebar-foreground))] mb-2">Услуги</label>
+              <select multiple value={selectedServiceIds} onChange={(e) => { const opts = Array.from(e.target.selectedOptions).map(o => o.value); setSelectedServiceIds(opts) }} className="w-full border border-[hsl(var(--sidebar-border))] rounded-md px-3 py-2 text-sm h-28">
                 {displayedServices.map(service => (<option key={service.id} value={service.id}>{service.name}{service.isArchived ? ' (архив)' : ''}</option>))}
               </select>
-              <label className="mt-2 inline-flex items-center text-xs text-gray-600">
+              <label className="mt-2 inline-flex items-center text-xs text-[hsl(var(--sidebar-foreground))]/80">
                 <input type="checkbox" className="mr-2" checked={includeArchivedServices} onChange={(e) => setIncludeArchivedServices(e.target.checked)} />
                 Показать архивные услуги
               </label>
-              <div className="mt-1 text-xs text-gray-500">Мультивыбор: Cmd/Ctrl + клик</div>
+              <div className="mt-1 text-xs text-[hsl(var(--sidebar-foreground))]/70">Мультивыбор: Cmd/Ctrl + клик</div>
             </div>
           </div>
         </div>
         )}
 
         {/* Сводная информация (построчно) */}
-        <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="mt-4 bg-white rounded-lg shadow-sm border border-[hsl(var(--sidebar-border))] p-4">
           {/* Мини‑графики: всегда показываем, две панели */}
           {(() => {
             const { labels, counts, revenueSalon, revenueNoShow, revenueCancelled } = aggregateGraphSeries()
@@ -987,19 +987,19 @@ export default function BookingsPage() {
             return (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="mb-2 md:col-span-2">
-                  <div className="inline-flex rounded-md border border-gray-300 overflow-hidden">
-                    <button onClick={() => setGraphGroupBy('day')} className={`px-2 py-1 text-xs ${graphGroupBy === 'day' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Дни</button>
-                    <button onClick={() => setGraphGroupBy('week')} className={`px-2 py-1 text-xs ${graphGroupBy === 'week' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Недели</button>
-                    <button onClick={() => setGraphGroupBy('month')} className={`px-2 py-1 text-xs ${graphGroupBy === 'month' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}>Месяцы</button>
+                  <div className="inline-flex rounded-md border border-[hsl(var(--sidebar-border))] overflow-hidden">
+                    <button onClick={() => setGraphGroupBy('day')} className={`px-2 py-1 text-xs ${graphGroupBy === 'day' ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'bg-white text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'}`}>Дни</button>
+                    <button onClick={() => setGraphGroupBy('week')} className={`px-2 py-1 text-xs ${graphGroupBy === 'week' ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'bg-white text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'}`}>Недели</button>
+                    <button onClick={() => setGraphGroupBy('month')} className={`px-2 py-1 text-xs ${graphGroupBy === 'month' ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'bg-white text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'}`}>Месяцы</button>
                   </div>
                 </div>
                 {/* График 1: количество */}
-                <div className="border border-gray-200 rounded p-3">
-                  <div className="text-xs text-gray-600 mb-2">Количество бронирований по дням</div>
+                <div className="border border-[hsl(var(--sidebar-border))] rounded p-3">
+                  <div className="text-xs text-[hsl(var(--sidebar-foreground))] mb-2">Количество бронирований по дням</div>
                   <div className="flex items-start gap-2">
                     {/* Ось Y с подписями вне графика */}
                     <div>
-                      <div className="flex flex-col justify-between text-[10px] text-gray-400" style={{ height: `${height}px` }}>
+                      <div className="flex flex-col justify-between text-[10px] text-[hsl(var(--sidebar-foreground))]">
                         <div className="flex items-center gap-1"><span>{maxCount}</span><span>шт</span></div>
                         <div>{Math.round(maxCount / 2)}</div>
                         <div>0</div>
@@ -1015,7 +1015,7 @@ export default function BookingsPage() {
                         <path d={buildSparklinePath(counts, width, height, maxCount)} stroke="#2563eb" strokeWidth="2" fill="none" />
                       </svg>
                       {/* Ось X с метками вне графика */}
-                      <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1">
+                      <div className="flex items-center justify-between text-[10px] text-[hsl(var(--sidebar-foreground))] mt-1">
                         <div className="flex-1 flex justify-between">
                           {xIdxs.map((idx, i) => (
                             <div key={i} className="text-[10px]">{labels[idx]}</div>
@@ -1027,14 +1027,14 @@ export default function BookingsPage() {
                   </div>
                 </div>
                 {/* График 2: выручка (зелёная) и упущенная (красная) */}
-                <div className="border border-gray-200 rounded p-3">
-                  <div className="text-xs text-gray-600 mb-2">
+                <div className="border border-[hsl(var(--sidebar-border))] rounded p-3">
+                  <div className="text-xs text-[hsl(var(--sidebar-foreground))] mb-2">
                     По дням: <span className="text-[#16a34a] font-medium">Выручка</span>, <span className="text-[#ef4444] font-medium">Клиент не пришёл</span>, <span className="text-[#f59e0b] font-medium">Отмены</span>
                   </div>
                   <div className="flex items-start gap-2">
                     {/* Ось Y с подписями вне графика */}
                     <div>
-                      <div className="flex flex-col justify-between text-[10px] text-gray-400" style={{ height: `${height}px` }}>
+                      <div className="flex flex-col justify-between text-[10px] text-[hsl(var(--sidebar-foreground))]">
                         <div className="flex items-center gap-1"><span>{maxRevenue.toLocaleString('ru-RU')}</span><span>₽</span></div>
                         <div>{Math.round(maxRevenue / 2).toLocaleString('ru-RU')}</div>
                         <div>0</div>
@@ -1054,7 +1054,7 @@ export default function BookingsPage() {
                         <path d={buildSparklinePath(revenueSalon, width, height, maxRevenue)} stroke="#16a34a" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                       </svg>
                       {/* Ось X с метками вне графика */}
-                      <div className="flex items-center justify-between text-[10px] text-gray-400 mt-1">
+                      <div className="flex items-center justify-between text-[10px] text-[hsl(var(--sidebar-foreground))] mt-1">
                         <div className="flex-1 flex justify-between">
                           {xIdxs.map((idx, i) => (
                             <div key={i} className="text-[10px]">{labels[idx]}</div>
@@ -1070,8 +1070,8 @@ export default function BookingsPage() {
           })()}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-baseline mb-3">
-            <div className="text-sm font-medium text-gray-900">{getSummaryTitle()}</div>
-            <div className="text-sm font-medium text-gray-900 md:border-l md:pl-4 border-gray-200">на сумму</div>
+            <div className="text-sm font-bold text-[hsl(var(--sidebar-foreground))]">{getSummaryTitle()}</div>
+            <div className="text-sm font-bold text-[hsl(var(--sidebar-foreground))] md:border-l md:pl-4 border-[hsl(var(--sidebar-border))]">на сумму</div>
             <div className="text-sm font-medium text-gray-900 md:border-l md:pl-4 border-gray-200"></div>
             <div className="text-sm font-medium text-gray-900 md:border-l md:pl-4 border-gray-200"></div>
           </div>
@@ -1092,7 +1092,7 @@ export default function BookingsPage() {
               ))}
             </div>
             {/* Колонка 2: суммы по статусам */}
-            <div className="md:border-l md:pl-4 border-gray-200">
+            <div className="md:border-l md:pl-4 border-[hsl(var(--sidebar-border))]">
               {[
                 { key: 'COMPLETED' },
                 { key: 'CONFIRMED' },
@@ -1106,7 +1106,7 @@ export default function BookingsPage() {
               ))}
             </div>
             {/* Колонка 3: Выручка салона (итого и разбивка) */}
-            <div className="md:border-l md:pl-4 border-gray-200">
+            <div className="md:border-l md:pl-4 border-[hsl(var(--sidebar-border))]">
               {(() => {
                 const completed = Number(summary.COMPLETED?.amount ?? 0)
                 const planned = Number((summary.CONFIRMED?.amount ?? 0))
@@ -1114,16 +1114,16 @@ export default function BookingsPage() {
                 return (
                   <div>
                     <div className="flex items-center justify-between py-0.5">
-                      <span className="text-gray-900 font-medium">Выручка салона</span>
+                      <span className="text-[hsl(var(--sidebar-foreground))] font-medium">Выручка салона</span>
                       <span className="font-semibold tabular-nums">{summaryLoading ? '' : `${total.toLocaleString('ru-RU')} ₽`}</span>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">из них</div>
+                    <div className="text-xs text-[hsl(var(--sidebar-foreground))]/70 mt-1">из них</div>
                     <div className="flex items-center justify-between py-0.5">
-                      <span className="text-gray-700">Фактическая (выполнено)</span>
+                      <span className="text-[hsl(var(--sidebar-foreground))]/90">Фактическая (выполнено)</span>
                       <span className="font-semibold tabular-nums">{summaryLoading ? '' : `${completed.toLocaleString('ru-RU')} ₽`}</span>
                     </div>
                     <div className="flex items-center justify-between py-0.5">
-                      <span className="text-gray-700">Планируемая (подтверждено)</span>
+                      <span className="text-[hsl(var(--sidebar-foreground))]/90">Планируемая (подтверждено)</span>
                       <span className="font-semibold tabular-nums">{summaryLoading ? '' : `${planned.toLocaleString('ru-RU')} ₽`}</span>
                     </div>
                   </div>
@@ -1131,7 +1131,7 @@ export default function BookingsPage() {
               })()}
             </div>
             {/* Колонка 4: Упущенная выручка (отдельно) */}
-            <div className="md:border-l md:pl-4 border-gray-200">
+            <div className="md:border-l md:pl-4 border-[hsl(var(--sidebar-border))]">
               <div className="flex items-center justify-between py-0.5">
                 <span className="text-red-600">Клиент не пришёл</span>
                 <span className="font-semibold tabular-nums">{summaryLoading ? '' : `${(Number(summary.NO_SHOW?.amount ?? 0)).toLocaleString('ru-RU')} ₽`}</span>
@@ -1149,7 +1149,7 @@ export default function BookingsPage() {
           <button
             onClick={loadBookings}
             disabled={bookingsLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 rounded-md text-sm font-bold bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))] hover:bg-[hsl(var(--sidebar-accent))] disabled:opacity-50"
           >
             {bookingsLoading ? 'Загрузка…' : (bookingsLoaded ? 'Обновить список' : 'Загрузить список')}
           </button>
@@ -1164,20 +1164,20 @@ export default function BookingsPage() {
               <p className="mt-1 text-sm text-gray-500">Записи будут отображаться здесь после их создания.</p>
             </div>
           ) : (
-            <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-x-hidden">
+            <div className="bg-white shadow-sm rounded-lg border border-[hsl(var(--sidebar-border))] overflow-x-hidden">
               <div className="max-h-[60vh] overflow-y-auto">
               <table className="w-full table-fixed divide-y divide-gray-200 text-xs">
                 <thead className="bg-gray-50 sticky top-0 z-10">
                   <tr>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[14%]">Дата начала услуги</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[14%]">Дата создания брони</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[18%]">Услуга</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[14%]">Мастер</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[10%]">Длительность</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[10%]">Цена</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[16%]">Имя клиента</th>
-                    <th className="px-3 py-2 text-left text-[11px] font-medium text-gray-500 uppercase tracking-wider w-[12%]">Статус</th>
-                    <th className="px-3 py-2 text-right text-[11px] font-medium text-gray-500 uppercase tracking-wider w-16">Действие</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[14%]">Дата начала услуги</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[14%]">Дата создания брони</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[18%]">Услуга</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[14%]">Мастер</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[10%]">Длительность</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[10%]">Цена</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[16%]">Имя клиента</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-[12%]">Статус</th>
+                    <th className="px-3 py-2 text-right text-[11px] font-bold text-[hsl(var(--sidebar-foreground))] uppercase tracking-wider w-16">Действие</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">

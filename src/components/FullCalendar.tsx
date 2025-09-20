@@ -450,18 +450,18 @@ export default function FullCalendar({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Заголовок с навигацией */}
-      <div className="p-3 sm:p-4 border-b border-gray-200">
+      <div className="p-3 sm:p-4 border-b border-[hsl(var(--sidebar-border))]">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center space-x-2 sm:space-x-4">
             <button
               onClick={goToToday}
-              className="px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+              className="px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-base font-bold bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))] hover:bg-[hsl(var(--sidebar-accent))] transition-colors"
             >
               Сегодня
             </button>
           </div>
           
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+          <h2 className="text-lg sm:text-xl font-bold text-[hsl(var(--sidebar-foreground))]">
             {formatDate(selectedDate)}
           </h2>
         </div>
@@ -471,7 +471,7 @@ export default function FullCalendar({
           {/* Стрелка влево */}
           <button
             onClick={goToPreviousWeek}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg text-[hsl(var(--sidebar-foreground))]/80 hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -484,16 +484,16 @@ export default function FullCalendar({
               const isSelected = isSameDay(day, selectedDate)
               const isToday = isSameDay(day, new Date())
               
-                            return (
+                           return (
                 <button
                   key={index}
                   onClick={() => goToWeekDay(day)}
-                  className={`min-w-[44px] sm:min-w-0 flex-1 text-center px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                  className={`min-w-[44px] sm:min-w-0 flex-1 text-center px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors ${
                     isSelected
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))] shadow-sm'
                       : isToday
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-[hsl(var(--sidebar-accent))]/30 text-[hsl(var(--sidebar-foreground))]'
+                      : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]'
                   }`}
                 >
                   {format(day, 'EEE', { locale: ru })}
@@ -507,7 +507,7 @@ export default function FullCalendar({
           {/* Стрелка вправо */}
           <button
             onClick={goToNextWeek}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg text-[hsl(var(--sidebar-foreground))]/80 hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -523,7 +523,7 @@ export default function FullCalendar({
               const master = masters.find(m => m.id === e.target.value)
               setSelectedMaster(master || null)
             }}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+            className="px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 w-full sm:w-auto border-[hsl(var(--sidebar-border))] focus:ring-[hsl(var(--sidebar-ring))] text-[hsl(var(--sidebar-foreground))]"
           >
             <option value="">Все мастера</option>
             {masters.map(master => (
@@ -539,14 +539,14 @@ export default function FullCalendar({
       <div className="overflow-x-auto">
         <div className="min-w-max">
           {/* Заголовок с временем */}
-          <div className="flex border-b border-gray-200 sticky top-0 z-20 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-            <div className="w-24 p-2 sm:p-3 bg-gray-50 font-medium text-gray-700 text-xs sm:text-sm sticky left-0 z-20 border-r border-gray-200">
+          <div className="flex border-b border-[hsl(var(--sidebar-border))] sticky top-0 z-20 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+            <div className="w-24 p-2 sm:p-3 bg-gray-50 font-bold text-[hsl(var(--sidebar-foreground))] text-xs sm:text-sm sticky left-0 z-20 border-r border-[hsl(var(--sidebar-border))">
               Время
             </div>
             {activeMasters.map(master => (
               <div
                 key={master.id}
-                className="p-2 sm:p-3 bg-gray-50 font-medium text-gray-700 text-xs sm:text-sm text-center border-l border-gray-200"
+                className="p-2 sm:p-3 bg-gray-50 font-bold text-[hsl(var(--sidebar-foreground))] text-xs sm:text-sm text-center border-l border-[hsl(var(--sidebar-border))]"
                 style={{ width: masterColumnWidth }}
               >
                 {master.firstName} {master.lastName}
@@ -560,7 +560,7 @@ export default function FullCalendar({
                   return (
                     <div key={index} className="flex border-b border-gray-100">
                       {/* Колонка времени */}
-                      <div className="w-24 p-1.5 sm:p-2 text-[11px] sm:text-xs text-gray-500 bg-gray-50 sticky left-0 z-10 border-r border-gray-200">
+                      <div className="w-24 p-1.5 sm:p-2 text-[11px] sm:text-xs text-[hsl(var(--sidebar-foreground))]/70 bg-gray-50 sticky left-0 z-10 border-r border-[hsl(var(--sidebar-border))]">
                         {formatTime(timeSlot)}
                       </div>
                       
@@ -572,7 +572,7 @@ export default function FullCalendar({
                         const isWorking = isWorkingTime(master.id, timeSlot, selectedDate)
                         const isBreak = isBreakTime(master.id, timeSlot, selectedDate)
                         
-                        let slotClass = "relative border-l border-gray-200 min-h-[28px] sm:min-h-[32px]"
+                        let slotClass = "relative border-l border-[hsl(var(--sidebar-border))] min-h-[28px] sm:min-h-[32px]"
                         let slotContent = null
                         const isPastSlot = isSameDay(selectedDate, now) && isBefore(timeSlot, now)
                         
@@ -581,7 +581,7 @@ export default function FullCalendar({
                           slotClass += " bg-gray-300"
                           const reasonLabel = getAbsenceReasonLabel(absenceAtTime.reason)
                           slotContent = (
-                            <div className="absolute inset-0 flex items-center justify-center text-[11px] sm:text-xs text-gray-700 text-center px-1">
+                            <div className="absolute inset-0 flex items-center justify-center text-[11px] sm:text-xs text-[hsl(var(--sidebar-foreground))] text-center px-1">
                               <div className="font-medium truncate max-w-full">{reasonLabel}</div>
                             </div>
                           )
@@ -589,7 +589,7 @@ export default function FullCalendar({
                           // Нет расписания - серый слот
                           slotClass += " bg-gray-200"
                           slotContent = (
-                            <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-500">
+                            <div className="absolute inset-0 flex items-center justify-center text-xs text-[hsl(var(--sidebar-foreground))]/70">
                               Не работает
                             </div>
                           )
@@ -600,7 +600,7 @@ export default function FullCalendar({
                           // Перерыв - серый слот с подписью
                           slotClass += " bg-gray-200"
                           slotContent = (
-                            <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-600">
+                            <div className="absolute inset-0 flex items-center justify-center text-xs text-[hsl(var(--sidebar-foreground))]/80">
                               Перерыв
                             </div>
                           )
@@ -609,7 +609,7 @@ export default function FullCalendar({
                         return (
                           <div
                             key={master.id}
-                            className={slotClass + (isWorking && !isBreak && !absence ? ' hover:bg-blue-50 cursor-pointer' : '')}
+                            className={slotClass + (isWorking && !isBreak && !absence ? ' hover:bg-[hsl(var(--sidebar-accent))]/20 cursor-pointer' : '')}
                             style={{ width: masterColumnWidth }}
                             onClick={() => {
                               if (!isWorking || isBreak || absenceAtTime.absent) return
